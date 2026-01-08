@@ -903,9 +903,15 @@ app.get('/', (c) => {
                     if (selectedOption && selectedOption.dataset.withholding === 'true') {
                         if (selectedOption.dataset.manual === 'true') {
                             // Manual check for "その他"
-                            const withholdingCheckbox = row.querySelector('.job-category-withholding');
-                            if (withholdingCheckbox && withholdingCheckbox.checked) {
+                            if (residesInJapan) {
+                                // 国内居住者: その他は常に源泉徴収対象
                                 hasWithholding = true;
+                            } else {
+                                // 国外居住者: チェックボックスで判定
+                                const withholdingCheckbox = row.querySelector('.job-category-withholding');
+                                if (withholdingCheckbox && withholdingCheckbox.checked) {
+                                    hasWithholding = true;
+                                }
                             }
                         } else {
                             hasWithholding = true;
@@ -949,7 +955,7 @@ app.get('/', (c) => {
                 document.getElementById('totalAmount').textContent = '¥' + Math.round(total).toLocaleString();
                 
                 // Update withholding label with rate
-                document.getElementById('withholdingLabel').textContent = 'Withholding Tax (' + withholdingRatePercent + ') / 源泉徴収税 (' + withholdingRatePercent + '):';
+                document.getElementById('withholdingLabel').textContent = 'Withholding Tax / 源泉徴収税 (' + withholdingRatePercent + '):';;
                 
                 // Show/hide withholding row
                 document.getElementById('withholdingRow').style.display = hasWithholding ? 'flex' : 'none';
