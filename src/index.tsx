@@ -29,6 +29,10 @@ app.get('/', (c) => {
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
         <style>
+            * {
+                font-family: Arial, sans-serif !important;
+            }
+            
             @media print {
                 .no-print {
                     display: none !important;
@@ -37,7 +41,16 @@ app.get('/', (c) => {
                     display: block !important;
                 }
                 body {
-                    background: white;
+                    background: white !important;
+                    color: black !important;
+                }
+                * {
+                    background: white !important;
+                    color: black !important;
+                }
+                @page {
+                    size: A4;
+                    margin: 10mm;
                 }
             }
             .print-only {
@@ -74,7 +87,20 @@ app.get('/', (c) => {
                         FROM / 発行者情報
                     </h2>
                     
-                    <div class="grid md:grid-cols-2 gap-4">
+                    <div class="grid md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1 required">
+                                Issuer Type / 発行者タイプ
+                            </label>
+                            <select name="issuerType" id="issuerType" required
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="">選択してください</option>
+                                <option value="corporation">Corporation / 法人</option>
+                                <option value="sole">Sole Proprietor / 個人事業主</option>
+                                <option value="freelance">Freelancer / フリーランス</option>
+                            </select>
+                        </div>
+                        
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1 required">
                                 Name / 氏名
@@ -132,7 +158,7 @@ app.get('/', (c) => {
                             <input type="checkbox" name="workPerformedOutsideJapan" id="workPerformedOutsideJapan"
                                    class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
                             <span class="ml-2 text-sm text-gray-700 font-medium">
-                                All contracted work was performed outside Japan / 全ての契約業務は日本国外で実施されました
+                                Declaration: All contracted work was performed outside Japan / すべての業務は日本国外で行われました
                             </span>
                         </label>
                     </div>
@@ -152,11 +178,12 @@ app.get('/', (c) => {
                     
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1 required">
-                            Contact Person / 担当者
+                            Contact Person / 担当者（最大金額部署から自動選択）
                         </label>
-                        <input type="text" name="clientContact" required
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                               placeholder="担当者名を入力してください">
+                        <select name="clientContact" id="clientContact" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="">まず明細を入力してください</option>
+                        </select>
                     </div>
                 </div>
 
@@ -184,28 +211,15 @@ app.get('/', (c) => {
                         </div>
                     </div>
                     
-                    <div class="grid md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1 required">
-                                Withholding Tax / 源泉徴収
-                            </label>
-                            <select name="withholdingTax" id="withholdingTax" required
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                <option value="yes">YES - Subject to withholding / 源泉徴収あり</option>
-                                <option value="no">NO - Not subject to withholding / 源泉徴収なし</option>
-                            </select>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1 required">
-                                Tax Type / 税区分
-                            </label>
-                            <select name="taxType" id="taxType" required
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                <option value="inclusive">Tax Inclusive / 税込</option>
-                                <option value="exclusive">Tax Exclusive / 税抜</option>
-                            </select>
-                        </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1 required">
+                            Tax Type / 税区分
+                        </label>
+                        <select name="taxType" id="taxType" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="inclusive">Tax Inclusive / 税込</option>
+                            <option value="exclusive">Tax Exclusive / 税抜</option>
+                        </select>
                     </div>
                     
                     <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-gray-700">
@@ -228,13 +242,13 @@ app.get('/', (c) => {
                     
                     <div id="itemsContainer" class="space-y-4">
                         <div class="item-row border border-gray-200 rounded-lg p-4">
-                            <div class="grid md:grid-cols-2 gap-4 mb-3">
+                            <div class="grid md:grid-cols-3 gap-4 mb-3">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1 required">
                                         Department / 部署
                                     </label>
                                     <select name="department[]" required
-                                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                            class="item-department w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                                         <option value="">選択してください</option>
                                         <option value="A-01">A-01 ソリューション</option>
                                         <option value="A-02">A-02 店舗</option>
@@ -253,6 +267,26 @@ app.get('/', (c) => {
                                     <input type="text" name="departmentOther[]"
                                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                                 </div>
+                                
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1 required">
+                                        Job Category / 業務カテゴリ
+                                    </label>
+                                    <select name="jobCategory[]" required
+                                            class="item-job-category w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="">選択してください</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="job-category-other-container mb-3" style="display: none;">
+                                <label class="flex items-center bg-orange-50 p-3 rounded border border-orange-200">
+                                    <input type="checkbox" name="jobCategoryWithholding[]"
+                                           class="job-category-withholding w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                    <span class="ml-2 text-sm text-gray-700 font-medium">
+                                        Subject to withholding tax / 源泉徴収対象
+                                    </span>
+                                </label>
                             </div>
                             
                             <div class="grid md:grid-cols-2 gap-4 mb-3">
@@ -321,9 +355,9 @@ app.get('/', (c) => {
                                 <span class="font-medium">Tax (10%) / 消費税:</span>
                                 <span id="taxAmount" class="font-bold">¥0</span>
                             </div>
-                            <div class="flex justify-between text-lg" id="withholdingRow" style="display: none;">
-                                <span class="font-medium text-red-600">Withholding Tax / 源泉徴収税:</span>
-                                <span id="withholdingAmount" class="font-bold text-red-600">-¥0</span>
+                            <div class="flex justify-between text-lg text-red-600" id="withholdingRow" style="display: none;">
+                                <span class="font-medium">Withholding Tax / 源泉徴収税:</span>
+                                <span id="withholdingAmount" class="font-bold">-¥0</span>
                             </div>
                             <div class="flex justify-between text-2xl border-t-2 pt-2">
                                 <span class="font-bold">Total / 合計:</span>
@@ -418,6 +452,7 @@ app.get('/', (c) => {
                     <div id="internationalFields" class="payment-fields space-y-4" style="display: none;">
                         <h3 class="text-lg font-semibold text-gray-700 mb-3">International Transfer / 海外送金</h3>
                         
+                        <h4 class="text-md font-semibold text-gray-600 mt-4 mb-2">Recipient Information / 受取人情報</h4>
                         <div class="grid md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1 required">
@@ -429,11 +464,10 @@ app.get('/', (c) => {
                             
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1 required">
-                                    Recipient's Phone Number / 受取人電話番号
+                                    Recipient's E-mail Address / 受取人メールアドレス
                                 </label>
-                                <input type="tel" name="intlPhone"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                       placeholder="+1234567890">
+                                <input type="email" name="intlEmail"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                             </div>
                             
                             <div class="md:col-span-2">
@@ -446,10 +480,11 @@ app.get('/', (c) => {
                             
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1 required">
-                                    Recipient's E-mail Address / 受取人メールアドレス
+                                    Recipient's Phone Number / 受取人電話番号
                                 </label>
-                                <input type="email" name="intlEmail"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <input type="tel" name="intlPhone"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       placeholder="+1234567890">
                             </div>
                             
                             <div>
@@ -459,7 +494,10 @@ app.get('/', (c) => {
                                 <input type="date" name="intlDOB"
                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                             </div>
-                            
+                        </div>
+                        
+                        <h4 class="text-md font-semibold text-gray-600 mt-4 mb-2">Bank Information / 銀行情報</h4>
+                        <div class="grid md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1 required">
                                     Overseas Bank Name / 海外銀行名
@@ -470,14 +508,14 @@ app.get('/', (c) => {
                             
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    Financial Institution Code / 金融機関コード
+                                    Financial Institution Code / 金融機関コード (Optional / 任意)
                                 </label>
                                 <input type="text" name="intlInstitutionCode"
                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                             </div>
                             
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <label class="block text-sm font-medium text-gray-700 mb-1 required">
                                     Branch Name / 支店名
                                 </label>
                                 <input type="text" name="intlBranchName"
@@ -485,7 +523,7 @@ app.get('/', (c) => {
                             </div>
                             
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                <label class="block text-sm font-medium text-gray-700 mb-1 required">
                                     Branch Number / 支店番号
                                 </label>
                                 <input type="text" name="intlBranchNumber" pattern="[0-9]*"
@@ -533,7 +571,7 @@ app.get('/', (c) => {
                         
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1 required">
-                                PayPal Email Address / PayPalメールアドレス
+                                PayPal Identity / PayPal登録アドレス
                             </label>
                             <input type="email" name="paypalEmail"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
@@ -562,6 +600,83 @@ app.get('/', (c) => {
 
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
         <script>
+            // Master Data
+            const DEPARTMENTS = {
+                'A-01': 'A-01 ソリューション',
+                'A-02': 'A-02 店舗',
+                'B-01': 'B-01 商談獲得',
+                'C-01': 'C-01 PEPPER Likes',
+                'C-02': 'C-02 dot B',
+                'X-01': 'X-01 経理'
+            };
+            
+            const STAFF_LIST = [
+                { name: '都所 遼', departments: ['C-01', 'B-01'] },
+                { name: '中村 黎志', departments: ['A-01'] },
+                { name: '米坂 隼輝', departments: ['A-01'] },
+                { name: '冨永 重人', departments: ['A-01'] },
+                { name: '吉田 有希', departments: ['A-01'] },
+                { name: '高橋 史朗', departments: ['A-01'] },
+                { name: '大和田 博斗', departments: ['A-01'] },
+                { name: '尹 智鉉', departments: ['A-01'] },
+                { name: '宇佐見 惇', departments: ['A-01'] },
+                { name: '長橋 悠', departments: ['X-01'] },
+                { name: '荒見 眞', departments: ['A-01'] },
+                { name: '斉藤 諒', departments: ['A-01', 'B-01', 'C-01'] },
+                { name: '林 益載', departments: ['A-01'] },
+                { name: 'Bradberry Zac', departments: ['A-01'] },
+                { name: 'Andrea Katsuya', departments: ['A-01'] },
+                { name: '潘 彦敬', departments: ['A-01'] },
+                { name: 'Valentina Herrera', departments: ['A-01'] },
+                { name: 'Javier Escobar', departments: ['A-01'] },
+                { name: 'Luis Martín', departments: ['A-01'] },
+                { name: '翁 于婷', departments: ['A-01'] },
+                { name: '華原 博文', departments: ['A-01'] },
+                { name: '中島 稜晴', departments: ['A-01'] },
+                { name: '金 美蘭', departments: ['A-01'] },
+                { name: 'Devan Veres', departments: ['A-01'] },
+                { name: '赤崎 隆', departments: ['A-01'] },
+                { name: '林 辰樺', departments: ['A-01'] },
+                { name: '石島 岬', departments: ['A-01'] },
+                { name: '神村 昂佑', departments: ['A-01'] },
+                { name: '佐野 里華', departments: ['A-01'] },
+                { name: '横川 菜都子', departments: ['X-01'] },
+                { name: '後藤 恵梨賀', departments: ['C-01'] },
+                { name: 'Aidan Mcfarlane', departments: ['A-01'] },
+                { name: '小林 雪珠', departments: ['A-01'] },
+                { name: '鐘築 悠衣', departments: ['A-01'] },
+                { name: '井上 航輔', departments: ['A-01'] },
+                { name: '鈴木陽汐', departments: ['C-01'] },
+                { name: '崔 亜衣', departments: ['X-01'] }
+            ];
+            
+            const JOB_LIST_DOMESTIC = [
+                { name: 'SNS運用代行', withholding: false },
+                { name: '広告運用', withholding: false },
+                { name: 'コーディング', withholding: false },
+                { name: '商談獲得', withholding: false },
+                { name: '被リンク獲得', withholding: false },
+                { name: 'CS業務', withholding: false },
+                { name: 'その他', withholding: true, manual: true }
+            ];
+            
+            const JOB_LIST_FOREIGN = [
+                { name: 'クリエイティブ制作', withholding: true, group: 'A' },
+                { name: 'コンテンツ企画・制作支援', withholding: true, group: 'A' },
+                { name: 'コピー・ライティング業務', withholding: true, group: 'A' },
+                { name: '動画・画像編集', withholding: true, group: 'A' },
+                { name: 'SNS関連業務', withholding: false, group: 'B' },
+                { name: 'インフルエンサー管理・調整業務', withholding: false, group: 'B' },
+                { name: '翻訳業務', withholding: false, group: 'B' },
+                { name: '広告運用', withholding: false, group: 'B' },
+                { name: '商談獲得', withholding: false, group: 'B' },
+                { name: 'その他', withholding: false, group: 'Manual', manual: true }
+            ];
+            
+            const TAX_RATE = 0.1;
+            const WITHHOLDING_RATE_DOMESTIC = 0.1021;
+            const WITHHOLDING_RATE_FOREIGN = 0.2042;
+            
             // Form state management
             let formData = {};
             
@@ -572,6 +687,7 @@ app.get('/', (c) => {
                     try {
                         const data = JSON.parse(saved);
                         // Populate issuer fields
+                        if (data.issuerType) document.querySelector('[name="issuerType"]').value = data.issuerType;
                         if (data.issuerName) document.querySelector('[name="issuerName"]').value = data.issuerName;
                         if (data.issuerTNumber) document.querySelector('[name="issuerTNumber"]').value = data.issuerTNumber;
                         if (data.issuerAddress) document.querySelector('[name="issuerAddress"]').value = data.issuerAddress;
@@ -604,6 +720,7 @@ app.get('/', (c) => {
                 const data = {};
                 
                 // Save issuer information
+                data.issuerType = formData.get('issuerType');
                 data.issuerName = formData.get('issuerName');
                 data.issuerTNumber = formData.get('issuerTNumber');
                 data.issuerAddress = formData.get('issuerAddress');
@@ -622,9 +739,9 @@ app.get('/', (c) => {
                     data.domesticAccountHolder = formData.get('domesticAccountHolder');
                 } else if (paymentMethod === 'international') {
                     data.intlCountry = formData.get('intlCountry');
-                    data.intlPhone = formData.get('intlPhone');
-                    data.intlAddress = formData.get('intlAddress');
                     data.intlEmail = formData.get('intlEmail');
+                    data.intlAddress = formData.get('intlAddress');
+                    data.intlPhone = formData.get('intlPhone');
                     data.intlDOB = formData.get('intlDOB');
                     data.intlBankName = formData.get('intlBankName');
                     data.intlInstitutionCode = formData.get('intlInstitutionCode');
@@ -640,6 +757,68 @@ app.get('/', (c) => {
                 
                 localStorage.setItem('invoiceFormData', JSON.stringify(data));
                 alert('Form data saved successfully! / フォームデータを保存しました！');
+            }
+            
+            // Update job category options based on residence
+            function updateJobCategories() {
+                const residesInJapan = document.getElementById('residesInJapan').checked;
+                const jobList = residesInJapan ? JOB_LIST_DOMESTIC : JOB_LIST_FOREIGN;
+                
+                document.querySelectorAll('.item-job-category').forEach(select => {
+                    const currentValue = select.value;
+                    select.innerHTML = '<option value="">選択してください</option>';
+                    jobList.forEach(job => {
+                        const option = document.createElement('option');
+                        option.value = job.name;
+                        option.textContent = job.name;
+                        option.dataset.withholding = job.withholding;
+                        option.dataset.manual = job.manual || false;
+                        option.dataset.group = job.group || '';
+                        select.appendChild(option);
+                    });
+                    if (currentValue) select.value = currentValue;
+                });
+            }
+            
+            // Update contact person dropdown based on department totals
+            function updateContactPerson() {
+                const departmentTotals = {};
+                
+                document.querySelectorAll('.item-row').forEach(row => {
+                    const dept = row.querySelector('[name="department[]"]').value;
+                    const subtotal = parseFloat(row.querySelector('.item-subtotal').value) || 0;
+                    
+                    if (dept && dept !== 'other') {
+                        departmentTotals[dept] = (departmentTotals[dept] || 0) + subtotal;
+                    }
+                });
+                
+                // Find department with max total
+                let maxDept = null;
+                let maxTotal = 0;
+                Object.keys(departmentTotals).forEach(dept => {
+                    if (departmentTotals[dept] > maxTotal) {
+                        maxTotal = departmentTotals[dept];
+                        maxDept = dept;
+                    }
+                });
+                
+                const contactSelect = document.getElementById('clientContact');
+                contactSelect.innerHTML = '<option value="">選択してください</option>';
+                
+                if (maxDept) {
+                    // Filter staff by max department and sort by name
+                    const filteredStaff = STAFF_LIST
+                        .filter(staff => staff.departments.includes(maxDept))
+                        .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+                    
+                    filteredStaff.forEach(staff => {
+                        const option = document.createElement('option');
+                        option.value = staff.name;
+                        option.textContent = staff.name;
+                        contactSelect.appendChild(option);
+                    });
+                }
             }
             
             // Show/hide payment fields based on selection
@@ -680,17 +859,39 @@ app.get('/', (c) => {
                 const subtotal = quantity * price;
                 itemRow.querySelector('.item-subtotal').value = subtotal;
                 calculateTotals();
+                updateContactPerson();
             }
             
             // Calculate all totals
             function calculateTotals() {
                 let subtotal = 0;
-                document.querySelectorAll('.item-subtotal').forEach(el => {
-                    subtotal += parseFloat(el.value) || 0;
+                const residesInJapan = document.getElementById('residesInJapan').checked;
+                const withholdingRate = residesInJapan ? WITHHOLDING_RATE_DOMESTIC : WITHHOLDING_RATE_FOREIGN;
+                
+                // Calculate subtotal and check for withholding
+                let hasWithholding = false;
+                document.querySelectorAll('.item-row').forEach(row => {
+                    const itemSubtotal = parseFloat(row.querySelector('.item-subtotal').value) || 0;
+                    subtotal += itemSubtotal;
+                    
+                    // Check if this item requires withholding
+                    const jobCategorySelect = row.querySelector('.item-job-category');
+                    const selectedOption = jobCategorySelect.options[jobCategorySelect.selectedIndex];
+                    
+                    if (selectedOption && selectedOption.dataset.withholding === 'true') {
+                        if (selectedOption.dataset.manual === 'true') {
+                            // Manual check for "その他"
+                            const withholdingCheckbox = row.querySelector('.job-category-withholding');
+                            if (withholdingCheckbox && withholdingCheckbox.checked) {
+                                hasWithholding = true;
+                            }
+                        } else {
+                            hasWithholding = true;
+                        }
+                    }
                 });
                 
                 const taxType = document.getElementById('taxType').value;
-                const withholdingTax = document.getElementById('withholdingTax').value;
                 
                 let taxAmount = 0;
                 let withholdingAmount = 0;
@@ -701,19 +902,19 @@ app.get('/', (c) => {
                     const baseAmount = subtotal / 1.1;
                     taxAmount = subtotal - baseAmount;
                     
-                    if (withholdingTax === 'yes') {
+                    if (hasWithholding) {
                         // Calculate withholding on tax-exclusive amount
-                        withholdingAmount = baseAmount * 0.1021;
+                        withholdingAmount = baseAmount * withholdingRate;
                         total = subtotal - withholdingAmount;
                     } else {
                         total = subtotal;
                     }
                 } else {
                     // Tax exclusive
-                    taxAmount = subtotal * 0.1;
+                    taxAmount = subtotal * TAX_RATE;
                     
-                    if (withholdingTax === 'yes') {
-                        withholdingAmount = subtotal * 0.1021;
+                    if (hasWithholding) {
+                        withholdingAmount = subtotal * withholdingRate;
                         total = subtotal + taxAmount - withholdingAmount;
                     } else {
                         total = subtotal + taxAmount;
@@ -726,7 +927,7 @@ app.get('/', (c) => {
                 document.getElementById('totalAmount').textContent = '¥' + Math.round(total).toLocaleString();
                 
                 // Show/hide withholding row
-                document.getElementById('withholdingRow').style.display = withholdingTax === 'yes' ? 'flex' : 'none';
+                document.getElementById('withholdingRow').style.display = hasWithholding ? 'flex' : 'none';
             }
             
             // Add new item row
@@ -737,7 +938,9 @@ app.get('/', (c) => {
                 
                 // Clear input values
                 newRow.querySelectorAll('input, textarea, select').forEach(el => {
-                    if (el.type === 'number') {
+                    if (el.type === 'checkbox') {
+                        el.checked = false;
+                    } else if (el.type === 'number') {
                         el.value = el.name.includes('quantity') ? '1' : '0';
                     } else if (el.tagName === 'SELECT') {
                         el.selectedIndex = 0;
@@ -745,6 +948,9 @@ app.get('/', (c) => {
                         el.value = '';
                     }
                 });
+                
+                // Update job categories for new row
+                updateJobCategories();
                 
                 // Show remove button
                 newRow.querySelector('.remove-item').style.display = 'inline-block';
@@ -770,6 +976,7 @@ app.get('/', (c) => {
                 row.remove();
                 updateRemoveButtons();
                 calculateTotals();
+                updateContactPerson();
             }
             
             // Generate invoice preview
@@ -785,6 +992,7 @@ app.get('/', (c) => {
                 // Build items HTML
                 let itemsHTML = '';
                 const departments = formData.getAll('department[]');
+                const jobCategories = formData.getAll('jobCategory[]');
                 const taskDetails = formData.getAll('taskDetails[]');
                 const projectNames = formData.getAll('projectName[]');
                 const quantities = formData.getAll('quantity[]');
@@ -796,6 +1004,7 @@ app.get('/', (c) => {
                     itemsHTML += \`
                         <tr class="border-b">
                             <td class="py-2 px-2 text-sm">\${dept}</td>
+                            <td class="py-2 px-2 text-sm">\${jobCategories[i]}</td>
                             <td class="py-2 px-2 text-sm">\${taskDetails[i]}</td>
                             <td class="py-2 px-2 text-sm">\${projectNames[i]}</td>
                             <td class="py-2 px-2 text-center text-sm">\${quantities[i]}</td>
@@ -820,12 +1029,17 @@ app.get('/', (c) => {
                     \`;
                 } else if (paymentMethod === 'international') {
                     paymentHTML = \`
+                        <h4 class="font-semibold mt-2">Recipient Information / 受取人情報</h4>
                         <div class="mb-2"><strong>Country / 居住国:</strong> \${formData.get('intlCountry')}</div>
+                        <div class="mb-2"><strong>Email:</strong> \${formData.get('intlEmail')}</div>
                         <div class="mb-2"><strong>Address / 住所:</strong> \${formData.get('intlAddress')}</div>
                         <div class="mb-2"><strong>Phone / 電話:</strong> \${formData.get('intlPhone')}</div>
-                        <div class="mb-2"><strong>Email:</strong> \${formData.get('intlEmail')}</div>
                         <div class="mb-2"><strong>Date of Birth / 生年月日:</strong> \${formData.get('intlDOB')}</div>
+                        <h4 class="font-semibold mt-3">Bank Information / 銀行情報</h4>
                         <div class="mb-2"><strong>Bank Name / 銀行名:</strong> \${formData.get('intlBankName')}</div>
+                        \${formData.get('intlInstitutionCode') ? \`<div class="mb-2"><strong>Institution Code / 金融機関コード:</strong> \${formData.get('intlInstitutionCode')}</div>\` : ''}
+                        <div class="mb-2"><strong>Branch Name / 支店名:</strong> \${formData.get('intlBranchName')}</div>
+                        <div class="mb-2"><strong>Branch Number / 支店番号:</strong> \${formData.get('intlBranchNumber')}</div>
                         <div class="mb-2"><strong>Bank Address / 銀行住所:</strong> \${formData.get('intlBankAddress')}</div>
                         <div class="mb-2"><strong>Account Number / 口座番号:</strong> \${formData.get('intlAccountNumber')}</div>
                         <div class="mb-2"><strong>SWIFT Code:</strong> \${formData.get('intlSwiftCode')}</div>
@@ -833,7 +1047,7 @@ app.get('/', (c) => {
                     \`;
                 } else if (paymentMethod === 'paypal') {
                     paymentHTML = \`
-                        <div class="mb-2"><strong>PayPal Email:</strong> \${formData.get('paypalEmail')}</div>
+                        <div class="mb-2"><strong>PayPal Identity / PayPal登録アドレス:</strong> \${formData.get('paypalEmail')}</div>
                     \`;
                 }
                 
@@ -842,8 +1056,16 @@ app.get('/', (c) => {
                 const workOutsideJapan = formData.get('workPerformedOutsideJapan');
                 let workOutsideNotice = '';
                 if (!residesInJapan && workOutsideJapan) {
-                    workOutsideNotice = '<div class="mt-4 p-3 bg-yellow-50 border border-yellow-300 rounded text-sm"><strong>✓</strong> All contracted work was performed outside Japan / 全ての契約業務は日本国外で実施されました</div>';
+                    workOutsideNotice = '<div class="mt-4 p-3 bg-yellow-50 border border-yellow-300 rounded text-sm"><strong>✓</strong> Declaration: All contracted work was performed outside Japan / すべての業務は日本国外で行われました</div>';
                 }
+                
+                // Get issuer type label
+                const issuerTypeMap = {
+                    'corporation': 'Corporation / 法人',
+                    'sole': 'Sole Proprietor / 個人事業主',
+                    'freelance': 'Freelancer / フリーランス'
+                };
+                const issuerType = issuerTypeMap[formData.get('issuerType')] || '';
                 
                 const previewHTML = \`
                     <div class="max-w-4xl mx-auto">
@@ -853,6 +1075,7 @@ app.get('/', (c) => {
                             <div>
                                 <h2 class="text-xl font-bold mb-3 border-b-2 border-gray-300 pb-1">FROM</h2>
                                 <div class="text-sm space-y-1">
+                                    <div class="text-xs text-gray-600">\${issuerType}</div>
                                     <div class="font-bold text-lg">\${formData.get('issuerName')}</div>
                                     \${formData.get('issuerTNumber') ? \`<div>T Number: \${formData.get('issuerTNumber')}</div>\` : ''}
                                     <div>\${formData.get('issuerAddress').replace(/\\n/g, '<br>')}</div>
@@ -885,6 +1108,7 @@ app.get('/', (c) => {
                                 <thead class="bg-gray-100">
                                     <tr>
                                         <th class="border border-gray-300 py-2 px-2 text-left text-sm">Department<br>部署</th>
+                                        <th class="border border-gray-300 py-2 px-2 text-left text-sm">Job Category<br>業務カテゴリ</th>
                                         <th class="border border-gray-300 py-2 px-2 text-left text-sm">Task Details<br>タスク詳細</th>
                                         <th class="border border-gray-300 py-2 px-2 text-left text-sm">Project<br>プロジェクト</th>
                                         <th class="border border-gray-300 py-2 px-2 text-center text-sm">Qty<br>数量</th>
@@ -908,7 +1132,7 @@ app.get('/', (c) => {
                                     <span>Tax (10%) / 消費税:</span>
                                     <span class="font-medium">\${document.getElementById('taxAmount').textContent}</span>
                                 </div>
-                                \${formData.get('withholdingTax') === 'yes' ? \`
+                                \${document.getElementById('withholdingRow').style.display === 'flex' ? \`
                                 <div class="flex justify-between py-1 text-red-600">
                                     <span>Withholding Tax / 源泉徴収税:</span>
                                     <span class="font-medium">\${document.getElementById('withholdingAmount').textContent}</span>
@@ -970,16 +1194,28 @@ app.get('/', (c) => {
                 const today = new Date().toISOString().split('T')[0];
                 document.querySelector('[name="invoiceDate"]').value = today;
                 
-                // Set default withholding tax to YES
-                document.getElementById('withholdingTax').value = 'yes';
+                // Initialize job categories
+                updateJobCategories();
+                
+                // Residence change
+                document.getElementById('residesInJapan').addEventListener('change', function(e) {
+                    const notice = document.getElementById('nonJapanWorkNotice');
+                    notice.style.display = e.target.checked ? 'none' : 'block';
+                    const checkbox = document.getElementById('workPerformedOutsideJapan');
+                    if (e.target.checked) {
+                        checkbox.checked = false;
+                        checkbox.removeAttribute('required');
+                    } else {
+                        checkbox.setAttribute('required', 'required');
+                    }
+                    updateJobCategories();
+                    calculateTotals();
+                });
                 
                 // Payment method change
                 document.getElementById('paymentMethod').addEventListener('change', function(e) {
                     showPaymentFields(e.target.value);
                 });
-                
-                // Withholding tax change
-                document.getElementById('withholdingTax').addEventListener('change', calculateTotals);
                 
                 // Tax type change
                 document.getElementById('taxType').addEventListener('change', calculateTotals);
@@ -1004,7 +1240,8 @@ app.get('/', (c) => {
                 // Department change
                 document.getElementById('itemsContainer').addEventListener('change', function(e) {
                     if (e.target.name === 'department[]') {
-                        const otherField = e.target.closest('.item-row').querySelector('.department-other');
+                        const row = e.target.closest('.item-row');
+                        const otherField = row.querySelector('.department-other');
                         otherField.style.display = e.target.value === 'other' ? 'block' : 'none';
                         const otherInput = otherField.querySelector('input');
                         if (e.target.value === 'other') {
@@ -1012,16 +1249,30 @@ app.get('/', (c) => {
                         } else {
                             otherInput.removeAttribute('required');
                         }
+                        updateContactPerson();
+                    }
+                    
+                    // Job category change
+                    if (e.target.matches('.item-job-category')) {
+                        const row = e.target.closest('.item-row');
+                        const selectedOption = e.target.options[e.target.selectedIndex];
+                        const manualContainer = row.querySelector('.job-category-other-container');
+                        const residesInJapan = document.getElementById('residesInJapan').checked;
+                        
+                        if (selectedOption.dataset.manual === 'true' && !residesInJapan) {
+                            manualContainer.style.display = 'block';
+                        } else {
+                            manualContainer.style.display = 'none';
+                            row.querySelector('.job-category-withholding').checked = false;
+                        }
+                        calculateTotals();
                     }
                 });
                 
-                // Resides in Japan checkbox
-                document.getElementById('residesInJapan').addEventListener('change', function(e) {
-                    const notice = document.getElementById('nonJapanWorkNotice');
-                    notice.style.display = e.target.checked ? 'none' : 'block';
-                    const checkbox = document.getElementById('workPerformedOutsideJapan');
-                    if (e.target.checked) {
-                        checkbox.checked = false;
+                // Job category withholding checkbox change
+                document.getElementById('itemsContainer').addEventListener('change', function(e) {
+                    if (e.target.matches('.job-category-withholding')) {
+                        calculateTotals();
                     }
                 });
                 
