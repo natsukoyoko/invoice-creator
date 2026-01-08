@@ -1194,6 +1194,16 @@ app.get('/', (c) => {
                         
                         <div class="grid md:grid-cols-2 gap-6 section-spacing">
                             <div>
+                                <h2 class="text-lg font-bold mb-2 border-b-2 border-gray-800 pb-1">BILL TO:</h2>
+                                <div class="text-xs space-y-1">
+                                    <div class="font-bold text-base">株式会社 LIFE PEPPER</div>
+                                    <div>〒104-0045 東京都中央区築地3–1–10<br>Shinto GINZA EAST 6F</div>
+                                    <div>Phone: +81 03-6869-7976</div>
+                                    <div class="mt-2"><strong>Attn:</strong> \${formData.get('clientContact')}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="text-right">
                                 <h2 class="text-lg font-bold mb-2 border-b-2 border-gray-800 pb-1">FROM</h2>
                                 <div class="text-xs space-y-1">
                                     <div class="text-xs text-gray-600">\${issuerType}</div>
@@ -1202,16 +1212,6 @@ app.get('/', (c) => {
                                     <div>\${formData.get('issuerAddress').replace(/\\n/g, '<br>')}</div>
                                     <div>Email: \${formData.get('issuerEmail')}</div>
                                     \${formData.get('issuerPhone') ? \`<div>Phone: \${formData.get('issuerPhone')}</div>\` : ''}
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <h2 class="text-lg font-bold mb-2 border-b-2 border-gray-800 pb-1">BILL TO:</h2>
-                                <div class="text-xs space-y-1">
-                                    <div class="font-bold text-base">株式会社 LIFE PEPPER</div>
-                                    <div>〒104-0045 東京都中央区築地3–1–10<br>Shinto GINZA EAST 6F</div>
-                                    <div>Phone: +81 03-6869-7976</div>
-                                    <div class="mt-2"><strong>Attn:</strong> \${formData.get('clientContact')}</div>
                                 </div>
                             </div>
                         </div>
