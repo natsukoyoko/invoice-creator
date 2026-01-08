@@ -144,13 +144,25 @@ app.get('/', (c) => {
                     </div>
                     
                     <div class="mt-4">
-                        <label class="flex items-center">
-                            <input type="checkbox" name="residesInJapan" id="residesInJapan"
-                                   class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                            <span class="ml-2 text-sm text-gray-700">
-                                Check if you reside in Japan / 日本に居住している場合はチェック
-                            </span>
+                        <label class="block text-sm font-medium text-gray-700 mb-2 required">
+                            Residence / 居住地
                         </label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="radio" name="residesInJapan" id="residesInJapan" value="yes" required
+                                       class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="ml-2 text-sm text-gray-700">
+                                    Residing in Japan / 日本在住
+                                </span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="residesInJapan" id="residesNotInJapan" value="no" required
+                                       class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="ml-2 text-sm text-gray-700">
+                                    Residing outside Japan / 日本以外在住
+                                </span>
+                            </label>
+                        </div>
                     </div>
                     
                     <div class="mt-4" id="nonJapanWorkNotice" style="display: none;">
@@ -356,7 +368,7 @@ app.get('/', (c) => {
                                 <span id="taxAmount" class="font-bold">¥0</span>
                             </div>
                             <div class="flex justify-between text-lg text-red-600" id="withholdingRow" style="display: none;">
-                                <span class="font-medium">Withholding Tax / 源泉徴収税:</span>
+                                <span class="font-medium"><span id="withholdingLabel">Withholding Tax / 源泉徴収税:</span></span>
                                 <span id="withholdingAmount" class="font-bold">-¥0</span>
                             </div>
                             <div class="flex justify-between text-2xl border-t-2 pt-2">
@@ -694,6 +706,12 @@ app.get('/', (c) => {
                         if (data.issuerEmail) document.querySelector('[name="issuerEmail"]').value = data.issuerEmail;
                         if (data.issuerPhone) document.querySelector('[name="issuerPhone"]').value = data.issuerPhone;
                         
+                        // Populate residence
+                        if (data.residesInJapan) {
+                            const radioButton = document.querySelector(\`input[name="residesInJapan"][value="\${data.residesInJapan}"]\`);
+                            if (radioButton) radioButton.checked = true;
+                        }
+                        
                         // Populate payment fields based on method
                         if (data.paymentMethod) {
                             document.querySelector('[name="paymentMethod"]').value = data.paymentMethod;
@@ -726,6 +744,7 @@ app.get('/', (c) => {
                 data.issuerAddress = formData.get('issuerAddress');
                 data.issuerEmail = formData.get('issuerEmail');
                 data.issuerPhone = formData.get('issuerPhone');
+                data.residesInJapan = formData.get('residesInJapan');
                 data.paymentMethod = formData.get('paymentMethod');
                 
                 // Save payment information based on method
@@ -761,7 +780,8 @@ app.get('/', (c) => {
             
             // Update job category options based on residence
             function updateJobCategories() {
-                const residesInJapan = document.getElementById('residesInJapan').checked;
+                const residesInJapanRadio = document.querySelector('input[name="residesInJapan"]:checked');
+                const residesInJapan = residesInJapanRadio ? residesInJapanRadio.value === 'yes' : true;
                 const jobList = residesInJapan ? JOB_LIST_DOMESTIC : JOB_LIST_FOREIGN;
                 
                 document.querySelectorAll('.item-job-category').forEach(select => {
@@ -865,8 +885,10 @@ app.get('/', (c) => {
             // Calculate all totals
             function calculateTotals() {
                 let subtotal = 0;
-                const residesInJapan = document.getElementById('residesInJapan').checked;
+                const residesInJapanRadio = document.querySelector('input[name="residesInJapan"]:checked');
+                const residesInJapan = residesInJapanRadio ? residesInJapanRadio.value === 'yes' : true;
                 const withholdingRate = residesInJapan ? WITHHOLDING_RATE_DOMESTIC : WITHHOLDING_RATE_FOREIGN;
+                const withholdingRatePercent = residesInJapan ? '10.21%' : '20.42%';
                 
                 // Calculate subtotal and check for withholding
                 let hasWithholding = false;
@@ -925,6 +947,9 @@ app.get('/', (c) => {
                 document.getElementById('taxAmount').textContent = '¥' + Math.round(taxAmount).toLocaleString();
                 document.getElementById('withholdingAmount').textContent = '-¥' + Math.round(withholdingAmount).toLocaleString();
                 document.getElementById('totalAmount').textContent = '¥' + Math.round(total).toLocaleString();
+                
+                // Update withholding label with rate
+                document.getElementById('withholdingLabel').textContent = 'Withholding Tax (' + withholdingRatePercent + ') / 源泉徴収税 (' + withholdingRatePercent + '):';
                 
                 // Show/hide withholding row
                 document.getElementById('withholdingRow').style.display = hasWithholding ? 'flex' : 'none';
@@ -1055,7 +1080,7 @@ app.get('/', (c) => {
                 const residesInJapan = formData.get('residesInJapan');
                 const workOutsideJapan = formData.get('workPerformedOutsideJapan');
                 let workOutsideNotice = '';
-                if (!residesInJapan && workOutsideJapan) {
+                if (residesInJapan === 'no' && workOutsideJapan) {
                     workOutsideNotice = '<div class="mt-4 p-3 bg-yellow-50 border border-yellow-300 rounded text-sm"><strong>✓</strong> Declaration: All contracted work was performed outside Japan / すべての業務は日本国外で行われました</div>';
                 }
                 
@@ -1134,7 +1159,7 @@ app.get('/', (c) => {
                                 </div>
                                 \${document.getElementById('withholdingRow').style.display === 'flex' ? \`
                                 <div class="flex justify-between py-1 text-red-600">
-                                    <span>Withholding Tax / 源泉徴収税:</span>
+                                    <span>\${document.getElementById('withholdingLabel').textContent}</span>
                                     <span class="font-medium">\${document.getElementById('withholdingAmount').textContent}</span>
                                 </div>
                                 \` : ''}
@@ -1198,18 +1223,21 @@ app.get('/', (c) => {
                 updateJobCategories();
                 
                 // Residence change
-                document.getElementById('residesInJapan').addEventListener('change', function(e) {
-                    const notice = document.getElementById('nonJapanWorkNotice');
-                    notice.style.display = e.target.checked ? 'none' : 'block';
-                    const checkbox = document.getElementById('workPerformedOutsideJapan');
-                    if (e.target.checked) {
-                        checkbox.checked = false;
-                        checkbox.removeAttribute('required');
-                    } else {
-                        checkbox.setAttribute('required', 'required');
-                    }
-                    updateJobCategories();
-                    calculateTotals();
+                document.querySelectorAll('input[name="residesInJapan"]').forEach(radio => {
+                    radio.addEventListener('change', function(e) {
+                        const notice = document.getElementById('nonJapanWorkNotice');
+                        const residesInJapan = e.target.value === 'yes';
+                        notice.style.display = residesInJapan ? 'none' : 'block';
+                        const checkbox = document.getElementById('workPerformedOutsideJapan');
+                        if (residesInJapan) {
+                            checkbox.checked = false;
+                            checkbox.removeAttribute('required');
+                        } else {
+                            checkbox.setAttribute('required', 'required');
+                        }
+                        updateJobCategories();
+                        calculateTotals();
+                    });
                 });
                 
                 // Payment method change
@@ -1257,7 +1285,8 @@ app.get('/', (c) => {
                         const row = e.target.closest('.item-row');
                         const selectedOption = e.target.options[e.target.selectedIndex];
                         const manualContainer = row.querySelector('.job-category-other-container');
-                        const residesInJapan = document.getElementById('residesInJapan').checked;
+                        const residesInJapanRadio = document.querySelector('input[name="residesInJapan"]:checked');
+                        const residesInJapan = residesInJapanRadio ? residesInJapanRadio.value === 'yes' : true;
                         
                         if (selectedOption.dataset.manual === 'true' && !residesInJapan) {
                             manualContainer.style.display = 'block';
