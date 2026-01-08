@@ -43,6 +43,8 @@ app.get('/', (c) => {
                 body {
                     background: white !important;
                     color: black !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
                 }
                 * {
                     background: white !important;
@@ -50,7 +52,89 @@ app.get('/', (c) => {
                 }
                 @page {
                     size: A4;
-                    margin: 10mm;
+                    margin: 12mm 15mm;
+                }
+                
+                /* A4サイズ最適化 */
+                .print-container {
+                    width: 100%;
+                    max-width: 100%;
+                    margin: 0;
+                    padding: 0;
+                    font-size: 11px !important;
+                }
+                
+                .print-container h1 {
+                    font-size: 24px !important;
+                    margin-bottom: 8px !important;
+                }
+                
+                .print-container h2 {
+                    font-size: 14px !important;
+                    margin-bottom: 6px !important;
+                }
+                
+                .print-container .invoice-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                    margin-bottom: 12px !important;
+                }
+                
+                .print-container .invoice-dates {
+                    background: #f3f4f6;
+                    padding: 8px 12px;
+                    border-radius: 4px;
+                    border: 1px solid #d1d5db;
+                }
+                
+                .print-container .invoice-dates div {
+                    font-weight: bold;
+                    font-size: 12px !important;
+                    line-height: 1.6;
+                }
+                
+                .print-container .section-spacing {
+                    margin-bottom: 10px !important;
+                }
+                
+                .print-container table {
+                    font-size: 10px !important;
+                    border-collapse: collapse;
+                    width: 100%;
+                }
+                
+                .print-container th {
+                    padding: 4px 3px !important;
+                    font-size: 9px !important;
+                    line-height: 1.3;
+                }
+                
+                .print-container td {
+                    padding: 3px !important;
+                    font-size: 10px !important;
+                    line-height: 1.3;
+                }
+                
+                .print-container .totals-section {
+                    margin-top: 10px !important;
+                    font-size: 11px !important;
+                }
+                
+                .print-container .payment-section {
+                    margin-top: 10px !important;
+                    padding-top: 10px !important;
+                    border-top: 2px solid #000;
+                }
+                
+                .print-container .payment-section h2 {
+                    margin-bottom: 6px !important;
+                }
+                
+                .print-container .payment-section div {
+                    font-size: 10px !important;
+                    line-height: 1.5;
+                    margin-bottom: 2px !important;
                 }
             }
             .print-only {
@@ -1034,13 +1118,13 @@ app.get('/', (c) => {
                     const dept = departments[i] === 'other' ? formData.getAll('departmentOther[]')[i] : departments[i];
                     itemsHTML += \`
                         <tr class="border-b">
-                            <td class="py-2 px-2 text-sm">\${dept}</td>
-                            <td class="py-2 px-2 text-sm">\${jobCategories[i]}</td>
-                            <td class="py-2 px-2 text-sm">\${taskDetails[i]}</td>
-                            <td class="py-2 px-2 text-sm">\${projectNames[i]}</td>
-                            <td class="py-2 px-2 text-center text-sm">\${quantities[i]}</td>
-                            <td class="py-2 px-2 text-right text-sm">¥\${parseFloat(unitPrices[i]).toLocaleString()}</td>
-                            <td class="py-2 px-2 text-right text-sm font-medium">¥\${parseFloat(subtotals[i]).toLocaleString()}</td>
+                            <td class="border border-gray-800 py-1 px-1 text-xs">\${dept}</td>
+                            <td class="border border-gray-800 py-1 px-1 text-xs">\${jobCategories[i]}</td>
+                            <td class="border border-gray-800 py-1 px-1 text-xs">\${taskDetails[i]}</td>
+                            <td class="border border-gray-800 py-1 px-1 text-xs">\${projectNames[i]}</td>
+                            <td class="border border-gray-800 py-1 px-1 text-center text-xs">\${quantities[i]}</td>
+                            <td class="border border-gray-800 py-1 px-1 text-right text-xs">¥\${parseFloat(unitPrices[i]).toLocaleString()}</td>
+                            <td class="border border-gray-800 py-1 px-1 text-right text-xs font-medium">¥\${parseFloat(subtotals[i]).toLocaleString()}</td>
                         </tr>
                     \`;
                 }
@@ -1051,34 +1135,34 @@ app.get('/', (c) => {
                 
                 if (paymentMethod === 'domestic') {
                     paymentHTML = \`
-                        <div class="mb-2"><strong>Bank Name / 銀行名:</strong> \${formData.get('domesticBankName')}</div>
-                        <div class="mb-2"><strong>Branch Name / 支店名:</strong> \${formData.get('domesticBranchName')}</div>
-                        <div class="mb-2"><strong>Branch Number / 支店番号:</strong> \${formData.get('domesticBranchNumber')}</div>
-                        <div class="mb-2"><strong>Account Type / 口座種別:</strong> \${formData.get('domesticAccountType')}</div>
-                        <div class="mb-2"><strong>Account Number / 口座番号:</strong> \${formData.get('domesticAccountNumber')}</div>
-                        <div class="mb-2"><strong>Account Holder / 受取人名:</strong> \${formData.get('domesticAccountHolder')}</div>
+                        <div><strong>Bank Name / 銀行名:</strong> \${formData.get('domesticBankName')}</div>
+                        <div><strong>Branch Name / 支店名:</strong> \${formData.get('domesticBranchName')}</div>
+                        <div><strong>Branch Number / 支店番号:</strong> \${formData.get('domesticBranchNumber')}</div>
+                        <div><strong>Account Type / 口座種別:</strong> \${formData.get('domesticAccountType')}</div>
+                        <div><strong>Account Number / 口座番号:</strong> \${formData.get('domesticAccountNumber')}</div>
+                        <div><strong>Account Holder / 受取人名:</strong> \${formData.get('domesticAccountHolder')}</div>
                     \`;
                 } else if (paymentMethod === 'international') {
                     paymentHTML = \`
-                        <h4 class="font-semibold mt-2">Recipient Information / 受取人情報</h4>
-                        <div class="mb-2"><strong>Country / 居住国:</strong> \${formData.get('intlCountry')}</div>
-                        <div class="mb-2"><strong>Email:</strong> \${formData.get('intlEmail')}</div>
-                        <div class="mb-2"><strong>Address / 住所:</strong> \${formData.get('intlAddress')}</div>
-                        <div class="mb-2"><strong>Phone / 電話:</strong> \${formData.get('intlPhone')}</div>
-                        <div class="mb-2"><strong>Date of Birth / 生年月日:</strong> \${formData.get('intlDOB')}</div>
-                        <h4 class="font-semibold mt-3">Bank Information / 銀行情報</h4>
-                        <div class="mb-2"><strong>Bank Name / 銀行名:</strong> \${formData.get('intlBankName')}</div>
-                        \${formData.get('intlInstitutionCode') ? \`<div class="mb-2"><strong>Institution Code / 金融機関コード:</strong> \${formData.get('intlInstitutionCode')}</div>\` : ''}
-                        <div class="mb-2"><strong>Branch Name / 支店名:</strong> \${formData.get('intlBranchName')}</div>
-                        <div class="mb-2"><strong>Branch Number / 支店番号:</strong> \${formData.get('intlBranchNumber')}</div>
-                        <div class="mb-2"><strong>Bank Address / 銀行住所:</strong> \${formData.get('intlBankAddress')}</div>
-                        <div class="mb-2"><strong>Account Number / 口座番号:</strong> \${formData.get('intlAccountNumber')}</div>
-                        <div class="mb-2"><strong>SWIFT Code:</strong> \${formData.get('intlSwiftCode')}</div>
-                        <div class="mb-2"><strong>Account Name / 口座名義:</strong> \${formData.get('intlAccountName')}</div>
+                        <h4 class="font-semibold mt-1 mb-1" style="font-size: 11px;">Recipient Information / 受取人情報</h4>
+                        <div><strong>Country / 居住国:</strong> \${formData.get('intlCountry')}</div>
+                        <div><strong>Email:</strong> \${formData.get('intlEmail')}</div>
+                        <div><strong>Address / 住所:</strong> \${formData.get('intlAddress')}</div>
+                        <div><strong>Phone / 電話:</strong> \${formData.get('intlPhone')}</div>
+                        <div><strong>Date of Birth / 生年月日:</strong> \${formData.get('intlDOB')}</div>
+                        <h4 class="font-semibold mt-2 mb-1" style="font-size: 11px;">Bank Information / 銀行情報</h4>
+                        <div><strong>Bank Name / 銀行名:</strong> \${formData.get('intlBankName')}</div>
+                        \${formData.get('intlInstitutionCode') ? \`<div><strong>Institution Code / 金融機関コード:</strong> \${formData.get('intlInstitutionCode')}</div>\` : ''}
+                        <div><strong>Branch Name / 支店名:</strong> \${formData.get('intlBranchName')}</div>
+                        <div><strong>Branch Number / 支店番号:</strong> \${formData.get('intlBranchNumber')}</div>
+                        <div><strong>Bank Address / 銀行住所:</strong> \${formData.get('intlBankAddress')}</div>
+                        <div><strong>Account Number / 口座番号:</strong> \${formData.get('intlAccountNumber')}</div>
+                        <div><strong>SWIFT Code:</strong> \${formData.get('intlSwiftCode')}</div>
+                        <div><strong>Account Name / 口座名義:</strong> \${formData.get('intlAccountName')}</div>
                     \`;
                 } else if (paymentMethod === 'paypal') {
                     paymentHTML = \`
-                        <div class="mb-2"><strong>PayPal Identity / PayPal登録アドレス:</strong> \${formData.get('paypalEmail')}</div>
+                        <div><strong>PayPal Identity / PayPal登録アドレス:</strong> \${formData.get('paypalEmail')}</div>
                     \`;
                 }
                 
@@ -1099,15 +1183,21 @@ app.get('/', (c) => {
                 const issuerType = issuerTypeMap[formData.get('issuerType')] || '';
                 
                 const previewHTML = \`
-                    <div class="max-w-4xl mx-auto">
-                        <h1 class="text-4xl font-bold text-center mb-8">Invoice</h1>
+                    <div class="print-container max-w-4xl mx-auto">
+                        <div class="invoice-header">
+                            <h1 class="text-4xl font-bold">Invoice</h1>
+                            <div class="invoice-dates">
+                                <div><strong>Invoice Date / 請求日:</strong><br>\${formData.get('invoiceDate')}</div>
+                                <div class="mt-1"><strong>Due Date / 支払期限:</strong><br>\${formData.get('dueDate')}</div>
+                            </div>
+                        </div>
                         
-                        <div class="grid md:grid-cols-2 gap-8 mb-8">
+                        <div class="grid md:grid-cols-2 gap-6 section-spacing">
                             <div>
-                                <h2 class="text-xl font-bold mb-3 border-b-2 border-gray-300 pb-1">FROM</h2>
-                                <div class="text-sm space-y-1">
+                                <h2 class="text-lg font-bold mb-2 border-b-2 border-gray-800 pb-1">FROM</h2>
+                                <div class="text-xs space-y-1">
                                     <div class="text-xs text-gray-600">\${issuerType}</div>
-                                    <div class="font-bold text-lg">\${formData.get('issuerName')}</div>
+                                    <div class="font-bold text-base">\${formData.get('issuerName')}</div>
                                     \${formData.get('issuerTNumber') ? \`<div>T Number: \${formData.get('issuerTNumber')}</div>\` : ''}
                                     <div>\${formData.get('issuerAddress').replace(/\\n/g, '<br>')}</div>
                                     <div>Email: \${formData.get('issuerEmail')}</div>
@@ -1116,9 +1206,9 @@ app.get('/', (c) => {
                             </div>
                             
                             <div>
-                                <h2 class="text-xl font-bold mb-3 border-b-2 border-gray-300 pb-1">BILL TO:</h2>
-                                <div class="text-sm space-y-1">
-                                    <div class="font-bold text-lg">株式会社 LIFE PEPPER</div>
+                                <h2 class="text-lg font-bold mb-2 border-b-2 border-gray-800 pb-1">BILL TO:</h2>
+                                <div class="text-xs space-y-1">
+                                    <div class="font-bold text-base">株式会社 LIFE PEPPER</div>
                                     <div>〒104-0045 東京都中央区築地3–1–10<br>Shinto GINZA EAST 6F</div>
                                     <div>Phone: +81 03-6869-7976</div>
                                     <div class="mt-2"><strong>Attn:</strong> \${formData.get('clientContact')}</div>
@@ -1126,25 +1216,20 @@ app.get('/', (c) => {
                             </div>
                         </div>
                         
-                        <div class="grid md:grid-cols-2 gap-4 mb-8 text-sm">
-                            <div><strong>Invoice Date / 請求日:</strong> \${formData.get('invoiceDate')}</div>
-                            <div><strong>Payment Due Date / 支払期限:</strong> \${formData.get('dueDate')}</div>
-                        </div>
-                        
                         \${workOutsideNotice}
                         
-                        <div class="mb-8">
-                            <h2 class="text-xl font-bold mb-3">Invoice Items / 請求項目</h2>
-                            <table class="w-full border-collapse border border-gray-300">
-                                <thead class="bg-gray-100">
+                        <div class="section-spacing">
+                            <h2 class="text-base font-bold mb-2">Invoice Items / 請求項目</h2>
+                            <table class="w-full border-collapse border border-gray-800">
+                                <thead class="bg-gray-200">
                                     <tr>
-                                        <th class="border border-gray-300 py-2 px-2 text-left text-sm">Department<br>部署</th>
-                                        <th class="border border-gray-300 py-2 px-2 text-left text-sm">Job Category<br>業務カテゴリ</th>
-                                        <th class="border border-gray-300 py-2 px-2 text-left text-sm">Task Details<br>タスク詳細</th>
-                                        <th class="border border-gray-300 py-2 px-2 text-left text-sm">Project<br>プロジェクト</th>
-                                        <th class="border border-gray-300 py-2 px-2 text-center text-sm">Qty<br>数量</th>
-                                        <th class="border border-gray-300 py-2 px-2 text-right text-sm">Unit Price<br>単価</th>
-                                        <th class="border border-gray-300 py-2 px-2 text-right text-sm">Subtotal<br>小計</th>
+                                        <th class="border border-gray-800 py-1 px-1 text-left text-xs">Department<br>部署</th>
+                                        <th class="border border-gray-800 py-1 px-1 text-left text-xs">Job Category<br>業務カテゴリ</th>
+                                        <th class="border border-gray-800 py-1 px-1 text-left text-xs">Task Details<br>タスク詳細</th>
+                                        <th class="border border-gray-800 py-1 px-1 text-left text-xs">Project<br>プロジェクト</th>
+                                        <th class="border border-gray-800 py-1 px-1 text-center text-xs">Qty<br>数量</th>
+                                        <th class="border border-gray-800 py-1 px-1 text-right text-xs">Unit Price<br>単価</th>
+                                        <th class="border border-gray-800 py-1 px-1 text-right text-xs">Subtotal<br>小計</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1153,8 +1238,8 @@ app.get('/', (c) => {
                             </table>
                         </div>
                         
-                        <div class="flex justify-end mb-8">
-                            <div class="w-80 space-y-2 text-sm">
+                        <div class="flex justify-end totals-section">
+                            <div class="w-80 space-y-1 text-xs">
                                 <div class="flex justify-between py-1">
                                     <span>Subtotal / 小計:</span>
                                     <span class="font-medium">\${document.getElementById('totalSubtotal').textContent}</span>
@@ -1164,26 +1249,26 @@ app.get('/', (c) => {
                                     <span class="font-medium">\${document.getElementById('taxAmount').textContent}</span>
                                 </div>
                                 \${document.getElementById('withholdingRow').style.display === 'flex' ? \`
-                                <div class="flex justify-between py-1 text-red-600">
+                                <div class="flex justify-between py-1" style="color: #dc2626;">
                                     <span>\${document.getElementById('withholdingLabel').textContent}</span>
                                     <span class="font-medium">\${document.getElementById('withholdingAmount').textContent}</span>
                                 </div>
                                 \` : ''}
-                                <div class="flex justify-between py-2 border-t-2 border-gray-800 text-lg font-bold">
+                                <div class="flex justify-between py-2 border-t-2 border-gray-800 text-base font-bold">
                                     <span>Total / 合計:</span>
-                                    <span class="text-blue-600">\${document.getElementById('totalAmount').textContent}</span>
+                                    <span style="color: #2563eb;">\${document.getElementById('totalAmount').textContent}</span>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="border-t-2 pt-6">
-                            <h2 class="text-xl font-bold mb-3">Payment Information / 支払い情報</h2>
-                            <div class="text-sm">
+                        <div class="payment-section">
+                            <h2 class="text-base font-bold mb-2">Payment Information / 支払い情報</h2>
+                            <div class="text-xs">
                                 \${paymentHTML}
                             </div>
                         </div>
                         
-                        <div class="mt-8 text-center text-sm text-gray-600">
+                        <div class="mt-6 text-center text-xs" style="color: #6b7280;">
                             <p>Thank you for your business! / ご利用ありがとうございます</p>
                         </div>
                         
