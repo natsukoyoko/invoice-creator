@@ -323,11 +323,12 @@ app.get('/', (c) => {
                             源泉徴収に関する注意事項 / Notice Regarding Withholding Tax
                         </p>
                         <p class="text-xs leading-relaxed mb-3">
-                            源泉徴収対象になりえる業務に関しましては、弊社が一旦税金を預かり国に納付する義務があるため、請求書に源泉額の記載がなくても、弊社側では源泉徴収を行わせていただく場合があります。
-                            確定申告により必要に応じて還付を受けられるため不利益はありません。
+                            源泉徴収の対象となる業務につきましては、法令に基づき弊社が税金を一時的にお預かりし、国へ納付する義務がございます。そのため、請求書に記載がない場合でも、弊社側で税額を算出し差し引いた金額でお振り込みさせていただくことがございます。
+                            お預かりした税金は、ご自身で確定申告を行うことで年間の正しい税額へと精算され、最終的な税負担に不利益が生じることはございません。
                         </p>
                         <p class="text-xs leading-relaxed text-gray-600">
-                            For work that may be subject to withholding tax, our company is obligated to withhold and remit taxes to the government. Even if the withholding amount is not stated on the invoice, we may process the withholding tax accordingly. You may claim a refund through tax filing if applicable, so there will be no financial disadvantage.
+                            For work subject to withholding tax, we are legally obligated to temporarily withhold taxes and remit them to the government. Therefore, even if not stated on the invoice, we may calculate and deduct the tax amount from the payment.
+                            The withheld taxes will be reconciled to the correct annual tax amount when you file your tax return, ensuring no financial disadvantage in your final tax burden.
                         </p>
                     </div>
                 </div>
