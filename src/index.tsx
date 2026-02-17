@@ -156,11 +156,18 @@ app.get('/', (c) => {
         <div class="max-w-6xl mx-auto">
             <!-- Header -->
             <div class="no-print bg-white rounded-lg shadow-md p-6 mb-6">
-                <h1 class="text-3xl font-bold text-gray-800 mb-2">
-                    <i class="fas fa-file-invoice mr-2 text-blue-600"></i>
-                    Create a new invoice / 請求書を作成
-                </h1>
-                <p class="text-gray-600">外部パートナー向けの請求書作成システム</p>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                            <i class="fas fa-file-invoice mr-2 text-blue-600"></i>
+                            Create a new invoice / 請求書を作成
+                        </h1>
+                        <p class="text-gray-600">外部パートナー向けの請求書作成システム</p>
+                    </div>
+                    <div class="flex-shrink-0 ml-6">
+                        <img src="/images/lifepepper-logo.png" alt="LIFE PEPPER" class="h-12 w-auto opacity-75">
+                    </div>
+                </div>
             </div>
 
             <!-- Main Form -->
