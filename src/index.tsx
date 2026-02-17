@@ -251,9 +251,9 @@ app.get('/', (c) => {
                     
                     <div class="mt-4" id="nonJapanWorkNotice" style="display: none;">
                         <label class="flex items-center bg-yellow-50 p-3 rounded border border-yellow-200">
-                            <input type="checkbox" name="workPerformedOutsideJapan" id="workPerformedOutsideJapan"
+                            <input type="checkbox" name="workPerformedOutsideJapan" id="workPerformedOutsideJapan" required
                                    class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                            <span class="ml-2 text-sm text-gray-700 font-medium">
+                            <span class="ml-2 text-sm text-gray-700 font-medium required">
                                 Declaration: All contracted work was performed outside Japan / すべての業務は日本国外で行われました
                             </span>
                         </label>
@@ -274,12 +274,11 @@ app.get('/', (c) => {
                     
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1 required">
-                            Contact Person / 担当者（最大金額部署から自動選択）
+                            Contact Person / 担当者
                         </label>
-                        <select name="clientContact" id="clientContact" required
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            <option value="">まず明細を入力してください</option>
-                        </select>
+                        <input type="text" name="clientContact" id="clientContact" required
+                               placeholder="担当者名を入力してください / Enter contact person name"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     </div>
                 </div>
 
@@ -885,44 +884,10 @@ app.get('/', (c) => {
             }
             
             // Update contact person dropdown based on department totals
+            // NOTE: Contact person is now a text input field, not a dropdown
             function updateContactPerson() {
-                const departmentTotals = {};
-                
-                document.querySelectorAll('.item-row').forEach(row => {
-                    const dept = row.querySelector('[name="department[]"]').value;
-                    const subtotal = parseFloat(row.querySelector('.item-subtotal').value) || 0;
-                    
-                    if (dept && dept !== 'other') {
-                        departmentTotals[dept] = (departmentTotals[dept] || 0) + subtotal;
-                    }
-                });
-                
-                // Find department with max total
-                let maxDept = null;
-                let maxTotal = 0;
-                Object.keys(departmentTotals).forEach(dept => {
-                    if (departmentTotals[dept] > maxTotal) {
-                        maxTotal = departmentTotals[dept];
-                        maxDept = dept;
-                    }
-                });
-                
-                const contactSelect = document.getElementById('clientContact');
-                contactSelect.innerHTML = '<option value="">選択してください</option>';
-                
-                if (maxDept) {
-                    // Filter staff by max department and sort by name
-                    const filteredStaff = STAFF_LIST
-                        .filter(staff => staff.departments.includes(maxDept))
-                        .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
-                    
-                    filteredStaff.forEach(staff => {
-                        const option = document.createElement('option');
-                        option.value = staff.name;
-                        option.textContent = staff.name;
-                        contactSelect.appendChild(option);
-                    });
-                }
+                // This function is no longer needed as contact person is a text input
+                // Keeping it for backward compatibility but it does nothing
             }
             
             // Show/hide payment fields based on selection
@@ -963,7 +928,6 @@ app.get('/', (c) => {
                 const subtotal = quantity * price;
                 itemRow.querySelector('.item-subtotal').value = subtotal;
                 calculateTotals();
-                updateContactPerson();
             }
             
             // Calculate all totals
@@ -987,15 +951,9 @@ app.get('/', (c) => {
                     if (selectedOption && selectedOption.dataset.withholding === 'true') {
                         if (selectedOption.dataset.manual === 'true') {
                             // Manual check for "その他"
-                            if (residesInJapan) {
-                                // 国内居住者: その他は常に源泉徴収対象
+                            const withholdingCheckbox = row.querySelector('.job-category-withholding');
+                            if (withholdingCheckbox && withholdingCheckbox.checked) {
                                 hasWithholding = true;
-                            } else {
-                                // 国外居住者: チェックボックスで判定
-                                const withholdingCheckbox = row.querySelector('.job-category-withholding');
-                                if (withholdingCheckbox && withholdingCheckbox.checked) {
-                                    hasWithholding = true;
-                                }
                             }
                         } else {
                             hasWithholding = true;
