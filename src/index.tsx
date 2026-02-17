@@ -697,12 +697,12 @@ app.get('/', (c) => {
         <script>
             // Master Data
             const DEPARTMENTS = {
-                'A-01': 'A-01 ソリューション',
-                'A-02': 'A-02 店舗',
-                'B-01': 'B-01 商談獲得',
+                'A-01': 'A-01 ソリューション / Solution',
+                'A-02': 'A-02 店舗 / Store',
+                'B-01': 'B-01 商談獲得 / Business Development',
                 'C-01': 'C-01 PEPPER Likes',
                 'C-02': 'C-02 dot B',
-                'X-01': 'X-01 経理'
+                'X-01': 'X-01 経理 / Accounting'
             };
             
             const STAFF_LIST = [
@@ -746,26 +746,26 @@ app.get('/', (c) => {
             ];
             
             const JOB_LIST_DOMESTIC = [
-                { name: 'SNS運用代行', withholding: false },
-                { name: '広告運用', withholding: false },
-                { name: 'コーディング', withholding: false },
-                { name: '商談獲得', withholding: false },
-                { name: '被リンク獲得', withholding: false },
-                { name: 'CS業務', withholding: false },
-                { name: 'その他', withholding: true, manual: true }
+                { name: 'SNS運用代行 / SNS Management', withholding: false },
+                { name: '広告運用 / Ad Operations', withholding: false },
+                { name: 'コーディング / Coding', withholding: false },
+                { name: '商談獲得 / Business Development', withholding: false },
+                { name: '被リンク獲得 / Backlink Acquisition', withholding: false },
+                { name: 'CS業務 / Customer Support', withholding: false },
+                { name: 'その他 / Other', withholding: true, manual: true }
             ];
             
             const JOB_LIST_FOREIGN = [
-                { name: 'クリエイティブ制作', withholding: true, group: 'A' },
-                { name: 'コンテンツ企画・制作支援', withholding: true, group: 'A' },
-                { name: 'コピー・ライティング業務', withholding: true, group: 'A' },
-                { name: '動画・画像編集', withholding: true, group: 'A' },
-                { name: 'SNS関連業務', withholding: false, group: 'B' },
-                { name: 'インフルエンサー管理・調整業務', withholding: false, group: 'B' },
-                { name: '翻訳業務', withholding: false, group: 'B' },
-                { name: '広告運用', withholding: false, group: 'B' },
-                { name: '商談獲得', withholding: false, group: 'B' },
-                { name: 'その他', withholding: false, group: 'Manual', manual: true }
+                { name: 'クリエイティブ制作 / Creative Production', withholding: true, group: 'A' },
+                { name: 'コンテンツ企画・制作支援 / Content Planning & Production Support', withholding: true, group: 'A' },
+                { name: 'コピー・ライティング業務 / Copywriting', withholding: true, group: 'A' },
+                { name: '動画・画像編集 / Video & Image Editing', withholding: true, group: 'A' },
+                { name: 'SNS関連業務 / SNS Related Work', withholding: false, group: 'B' },
+                { name: 'インフルエンサー管理・調整業務 / Influencer Management', withholding: false, group: 'B' },
+                { name: '翻訳業務 / Translation', withholding: false, group: 'B' },
+                { name: '広告運用 / Ad Operations', withholding: false, group: 'B' },
+                { name: '商談獲得 / Business Development', withholding: false, group: 'B' },
+                { name: 'その他 / Other', withholding: true, group: 'Manual', manual: true }
             ];
             
             const TAX_RATE = 0.1;
