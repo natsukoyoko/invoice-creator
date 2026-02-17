@@ -317,14 +317,17 @@ app.get('/', (c) => {
                         </select>
                     </div>
                     
-                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-gray-700">
-                        <p class="font-medium mb-2">
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-gray-700">
+                        <p class="font-medium mb-2 text-sm">
                             <i class="fas fa-info-circle text-yellow-600 mr-1"></i>
-                            源泉徴収に関する注意事項
+                            源泉徴収に関する注意事項 / Notice Regarding Withholding Tax
                         </p>
-                        <p>
+                        <p class="text-xs leading-relaxed mb-3">
                             源泉徴収対象になりえる業務に関しましては、弊社が一旦税金を預かり国に納付する義務があるため、請求書に源泉額の記載がなくても、弊社側では源泉徴収を行わせていただきます。
                             確定申告により必要に応じて還付を受けられるため不利益はありません。
+                        </p>
+                        <p class="text-xs leading-relaxed text-gray-600">
+                            For work that may be subject to withholding tax, our company is obligated to withhold and remit taxes to the government. Even if the withholding amount is not stated on the invoice, we will process the withholding tax accordingly. You may claim a refund through tax filing if applicable, so there will be no financial disadvantage.
                         </p>
                     </div>
                 </div>
