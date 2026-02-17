@@ -1334,14 +1334,24 @@ app.get('/', (c) => {
                         const row = e.target.closest('.item-row');
                         const selectedOption = e.target.options[e.target.selectedIndex];
                         const manualContainer = row.querySelector('.job-category-other-container');
+                        const withholdingCheckbox = row.querySelector('.job-category-withholding');
                         const residesInJapanRadio = document.querySelector('input[name="residesInJapan"]:checked');
                         const residesInJapan = residesInJapanRadio ? residesInJapanRadio.value === 'yes' : true;
                         
-                        if (selectedOption.dataset.manual === 'true' && !residesInJapan) {
+                        if (selectedOption.dataset.manual === 'true') {
+                            // Show checkbox for "その他" category
                             manualContainer.style.display = 'block';
+                            // Default check state based on residence
+                            if (residesInJapan) {
+                                // 国内居住者: デフォルトでチェック済み（初期値は源泉あり）
+                                withholdingCheckbox.checked = true;
+                            } else {
+                                // 国外居住者: デフォルトでチェックなし（初期値は源泉なし）
+                                withholdingCheckbox.checked = false;
+                            }
                         } else {
                             manualContainer.style.display = 'none';
-                            row.querySelector('.job-category-withholding').checked = false;
+                            withholdingCheckbox.checked = false;
                         }
                         calculateTotals();
                     }
