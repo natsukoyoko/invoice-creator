@@ -23,8 +23,9 @@
 
 ## URLs
 
+- **Production**: https://invoice-creator.pages.dev
+- **GitHub**: https://github.com/natsukoyoko/invoice-creator
 - **Development**: https://3000-i8u9xqeeezskodrybjork-8f57ffe2.sandbox.novita.ai
-- **GitHub**: (To be added after pushing to repository)
 
 ## Currently Completed Features / 完成済み機能
 
@@ -42,18 +43,19 @@
 
 ### ✅ クライアント情報（BILL TO）
 - 株式会社 LIFE PEPPERの情報を自動表示
-- 担当者名（最大金額部署から自動選択）
+- **LIFE PEPPERロゴ表示**（ページヘッダー右側）
+- 担当者名（テキスト入力形式・必須）
 
 ### ✅ マスタデータ管理
 
 **部署リスト（DEPARTMENTS）**:
-- A-01 ソリューション
-- A-02 店舗
-- B-01 商談獲得
+- A-01 ソリューション / Solution
+- A-02 店舗 / Store
+- B-01 商談獲得 / Business Development
 - C-01 PEPPER Likes
 - C-02 dot B
-- X-01 経理
-- その他
+- X-01 経理 / Accounting
+- その他 / Other
 
 **担当社員リスト（STAFF_LIST）**: 37名
 - 部署別に管理され、請求項目の最大金額部署に属する社員のみを50音順で表示
@@ -62,39 +64,41 @@
 **業務カテゴリ**:
 
 *国内居住者用（JOB_LIST_DOMESTIC）*:
-1. SNS運用代行（源泉なし）
-2. 広告運用（源泉なし）
-3. コーディング（源泉なし）
-4. 商談獲得（源泉なし）
-5. 被リンク獲得（源泉なし）
-6. CS業務（源泉なし）
-7. その他（**デフォルト：源泉あり、税率10.21%、自動適用**）
+1. SNS運用代行 / SNS Management（源泉なし）
+2. 広告運用 / Ad Operations（源泉なし）
+3. コーディング / Coding（源泉なし）
+4. 商談獲得 / Business Development（源泉なし）
+5. 被リンク獲得 / Backlink Acquisition（源泉なし）
+6. CS業務 / Customer Support（源泉なし）
+7. その他 / Other（**手動チェックボックスで選択可能、デフォルト：源泉あり、税率10.21%**）
 
 *国外居住者用（JOB_LIST_FOREIGN）*:
-1. クリエイティブ制作（Group A: 源泉あり、税率20.42%）
-2. コンテンツ企画・制作支援（Group A: 源泉あり）
-3. コピー・ライティング業務（Group A: 源泉あり）
-4. 動画・画像編集（Group A: 源泉あり）
-5. SNS関連業務（Group B: 源泉なし）
-6. インフルエンサー管理・調整業務（Group B: 源泉なし）
-7. 翻訳業務（Group B: 源泉なし）
-8. 広告運用（Group B: 源泉なし）
-9. 商談獲得（Group B: 源泉なし）
-10. その他（Manual: **手動チェックボックスで選択可能**）
-9. 商談獲得（Group B: 源泉なし）
-10. その他（Manual: 手動チェック）
+1. クリエイティブ制作 / Creative Production（Group A: 源泉あり、税率20.42%）
+2. コンテンツ企画・制作支援 / Content Planning/Support（Group A: 源泉あり）
+3. コピー・ライティング業務 / Copywriting（Group A: 源泉あり）
+4. 動画・画像編集 / Video/Image Editing（Group A: 源泉あり）
+5. SNS関連業務 / SNS Related（Group B: 源泉なし）
+6. インフルエンサー管理・調整業務 / Influencer Management（Group B: 源泉なし）
+7. 翻訳業務 / Translation（Group B: 源泉なし）
+8. 広告運用 / Ad Operations（Group B: 源泉なし）
+9. 商談獲得 / Business Development（Group B: 源泉なし）
+10. その他 / Other（Manual: **手動チェックボックスで選択可能、デフォルト：源泉なし**）
 
 ### ✅ 請求書詳細
 - 請求日（必須・デフォルト：今日の日付）
 - 支払期限（必須）
 - 税区分（税込/税抜）
 - 源泉徴収の自動判定（業務カテゴリに基づく）
-- 源泉徴収に関する注意事項の表示
+- **源泉徴収に関する注意事項の表示**（法人選択時は非表示）:
+  - **日本語**: 源泉徴収の対象となる業務につきましては、法令に基づき弊社が税金を一時的にお預かりし、国へ納付する義務がございます。そのため、請求書に記載がない場合でも、弊社側で税額を算出し差し引いた金額でお振り込みさせていただくことがございます。お預かりした税金は、ご自身で確定申告を行うことで年間の正しい税額へと精算され、最終的な税負担に不利益が生じることはございません。
+  - **English**: For work subject to withholding tax, we are legally obligated to temporarily withhold taxes and remit them to the government. Therefore, even if not stated on the invoice, we may calculate and deduct the tax amount from the payment. The withheld taxes will be reconciled to the correct annual tax amount when you file your tax return, ensuring no financial disadvantage in your final tax burden.
 
 ### ✅ 請求項目
 - 部署選択
 - 業務カテゴリ選択（居住状態により自動切替）
-- 「その他」選択時の源泉徴収チェックボックス（非居住者のみ表示）
+- **「その他」選択時の源泉徴収チェックボックス**:
+  - **国内居住者**: チェックボックス表示、デフォルトでチェック済み（源泉徴収10.21%）
+  - **国外居住者**: チェックボックス表示、デフォルトで未チェック（チェック時：源泉徴収20.42%）
 - タスク詳細（必須）
 - プロジェクト名（必須）
 - 数量（必須・デフォルト：1）
@@ -115,8 +119,8 @@
 - 税込設定: 内税（小計÷1.1）から源泉徴収税を計算
 - 税抜設定: 小計から源泉徴収税を計算
 - **表示: 小計欄に「Withholding Tax / 源泉徴収税 (10.21%)」または「Withholding Tax / 源泉徴収税 (20.42%)」として税率付きでマイナス表示**
-- **国内居住者の「その他」業務カテゴリ**: デフォルトで源泉徴収対象（チェックボックス非表示）
-- **国外居住者の「その他」業務カテゴリ**: 手動チェックボックスで源泉徴収対象を選択可能
+- **国内居住者の「その他」業務カテゴリ**: チェックボックス表示、デフォルトでチェック済み（源泉徴収対象）
+- **国外居住者の「その他」業務カテゴリ**: チェックボックス表示、デフォルトで未チェック（手動で選択可能）
 
 ### ✅ 支払い情報（条件付きフィールド）
 
@@ -317,8 +321,7 @@
 - 日本居住者の場合はチェックボックスをオン
 
 ### 2. クライアント情報
-- 担当者は請求項目入力後に自動で選択肢が表示されます
-- 最大金額の部署に属する社員のみが表示されます
+- 担当者名をテキストで入力してください（必須）
 
 ### 3. 請求書詳細
 - 請求日と支払期限を入力
@@ -328,7 +331,9 @@
 ### 4. 請求項目の入力
 - 部署を選択
 - 業務カテゴリを選択（居住状態により自動的に切り替わります）
-- 「その他」を選択した場合、非居住者のみ源泉徴収チェックボックスが表示されます
+- **「その他」を選択した場合**:
+  - **国内居住者**: チェックボックスが表示され、デフォルトでチェック済み（源泉徴収10.21%）
+  - **国外居住者**: チェックボックスが表示され、デフォルトで未チェック（チェック時：源泉徴収20.42%）
 - タスク詳細、プロジェクト名、数量、単価を入力
 - 小計は自動計算されます
 - 「項目を追加」ボタンで複数項目を追加可能
@@ -426,10 +431,14 @@ webapp/
 ├── src/
 │   ├── index.tsx          # Main Hono application with embedded HTML/JS
 │   └── renderer.tsx       # JSX renderer
+├── public/
+│   └── images/
+│       └── lifepepper-logo.png  # LIFE PEPPER logo
 ├── dist/                  # Build output
 │   └── _worker.js         # Compiled worker
 ├── .git/                  # Git repository
 ├── .gitignore            # Git ignore file
+├── .assetsignore         # Cloudflare Pages assets ignore (_worker.js)
 ├── ecosystem.config.cjs  # PM2 configuration
 ├── wrangler.jsonc        # Cloudflare configuration
 ├── package.json          # Dependencies and scripts
@@ -447,9 +456,10 @@ webapp/
 
 ## Deployment Status / デプロイ状況
 
-- **Platform**: Cloudflare Pages (準備完了)
-- **Status**: ✅ Development Active / 開発環境稼働中
-- **Last Updated**: 2026-01-08
+- **Platform**: Cloudflare Pages
+- **Status**: ✅ Production Active / 本番環境稼働中
+- **Production URL**: https://invoice-creator.pages.dev
+- **Last Updated**: 2026-02-18
 
 ## License / ライセンス
 
