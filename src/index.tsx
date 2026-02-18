@@ -944,12 +944,13 @@ app.get('/', (c) => {
             // Calculate all totals
             function calculateTotals() {
                 let subtotal = 0;
+                let withholdingSubtotal = 0; // Subtotal of items subject to withholding
                 const residesInJapanRadio = document.querySelector('input[name="residesInJapan"]:checked');
                 const residesInJapan = residesInJapanRadio ? residesInJapanRadio.value === 'yes' : true;
                 const withholdingRate = residesInJapan ? WITHHOLDING_RATE_DOMESTIC : WITHHOLDING_RATE_FOREIGN;
                 const withholdingRatePercent = residesInJapan ? '10.21%' : '20.42%';
                 
-                // Calculate subtotal and check for withholding
+                // Calculate subtotal and withholding subtotal per item
                 let hasWithholding = false;
                 document.querySelectorAll('.item-row').forEach(row => {
                     const itemSubtotal = parseFloat(row.querySelector('.item-subtotal').value) || 0;
@@ -958,17 +959,23 @@ app.get('/', (c) => {
                     // Check if this item requires withholding
                     const jobCategorySelect = row.querySelector('.item-job-category');
                     const selectedOption = jobCategorySelect.options[jobCategorySelect.selectedIndex];
+                    let itemHasWithholding = false;
                     
                     if (selectedOption && selectedOption.dataset.withholding === 'true') {
                         if (selectedOption.dataset.manual === 'true') {
                             // Manual check for "その他"
                             const withholdingCheckbox = row.querySelector('.job-category-withholding');
                             if (withholdingCheckbox && withholdingCheckbox.checked) {
-                                hasWithholding = true;
+                                itemHasWithholding = true;
                             }
                         } else {
-                            hasWithholding = true;
+                            itemHasWithholding = true;
                         }
+                    }
+                    
+                    if (itemHasWithholding) {
+                        hasWithholding = true;
+                        withholdingSubtotal += itemSubtotal;
                     }
                 });
                 
@@ -984,8 +991,9 @@ app.get('/', (c) => {
                     taxAmount = subtotal - baseAmount;
                     
                     if (hasWithholding) {
-                        // Calculate withholding on tax-exclusive amount
-                        withholdingAmount = baseAmount * withholdingRate;
+                        // Calculate withholding on tax-exclusive amount of withholding items only
+                        const withholdingBaseAmount = withholdingSubtotal / 1.1;
+                        withholdingAmount = withholdingBaseAmount * withholdingRate;
                         total = subtotal - withholdingAmount;
                     } else {
                         total = subtotal;
@@ -995,7 +1003,8 @@ app.get('/', (c) => {
                     taxAmount = subtotal * TAX_RATE;
                     
                     if (hasWithholding) {
-                        withholdingAmount = subtotal * withholdingRate;
+                        // Calculate withholding on withholding items only
+                        withholdingAmount = withholdingSubtotal * withholdingRate;
                         total = subtotal + taxAmount - withholdingAmount;
                     } else {
                         total = subtotal + taxAmount;
@@ -1083,12 +1092,54 @@ app.get('/', (c) => {
                 const unitPrices = formData.getAll('unitPrice[]');
                 const subtotals = formData.getAll('subtotal[]');
                 
+                // Get all item rows to check withholding status
+                const itemRows = document.querySelectorAll('.item-row');
+                const residesInJapanRadio = document.querySelector('input[name="residesInJapan"]:checked');
+                const residesInJapan = residesInJapanRadio ? residesInJapanRadio.value === 'yes' : true;
+                
                 for (let i = 0; i < departments.length; i++) {
-                    const dept = departments[i] === 'other' ? formData.getAll('departmentOther[]')[i] : departments[i];
+                    // Get department full name
+                    let deptDisplay = '';
+                    if (departments[i] === 'other') {
+                        deptDisplay = formData.getAll('departmentOther[]')[i];
+                    } else {
+                        const deptMap = {
+                            'A-01': 'A-01 ソリューション / Solution',
+                            'A-02': 'A-02 店舗 / Store',
+                            'B-01': 'B-01 商談獲得 / Business Development',
+                            'C-01': 'C-01 PEPPER Likes',
+                            'C-02': 'C-02 dot B',
+                            'X-01': 'X-01 経理 / Accounting'
+                        };
+                        deptDisplay = deptMap[departments[i]] || departments[i];
+                    }
+                    
+                    // Check if this item has withholding
+                    const row = itemRows[i];
+                    let itemHasWithholding = false;
+                    if (row) {
+                        const jobCategorySelect = row.querySelector('.item-job-category');
+                        const selectedOption = jobCategorySelect.options[jobCategorySelect.selectedIndex];
+                        
+                        if (selectedOption && selectedOption.dataset.withholding === 'true') {
+                            if (selectedOption.dataset.manual === 'true') {
+                                const withholdingCheckbox = row.querySelector('.job-category-withholding');
+                                if (withholdingCheckbox && withholdingCheckbox.checked) {
+                                    itemHasWithholding = true;
+                                }
+                            } else {
+                                itemHasWithholding = true;
+                            }
+                        }
+                    }
+                    
+                    // Add withholding indicator
+                    const withholdingIndicator = itemHasWithholding ? '<span style="color: #dc2626; font-weight: bold;">★</span> ' : '';
+                    
                     itemsHTML += \`
                         <tr class="border-b">
-                            <td class="border border-gray-800 py-1 px-1 text-xs">\${dept}</td>
-                            <td class="border border-gray-800 py-1 px-1 text-xs">\${jobCategories[i]}</td>
+                            <td class="border border-gray-800 py-1 px-1" style="font-size: 9px;">\${deptDisplay}</td>
+                            <td class="border border-gray-800 py-1 px-1 text-xs">\${withholdingIndicator}\${jobCategories[i]}</td>
                             <td class="border border-gray-800 py-1 px-1 text-xs">\${taskDetails[i]}</td>
                             <td class="border border-gray-800 py-1 px-1 text-xs">\${projectNames[i]}</td>
                             <td class="border border-gray-800 py-1 px-1 text-center text-xs">\${quantities[i]}</td>
@@ -1205,6 +1256,7 @@ app.get('/', (c) => {
                                     \${itemsHTML}
                                 </tbody>
                             </table>
+                            \${document.getElementById('withholdingRow').style.display === 'flex' ? '<div class="mt-2 text-xs" style="color: #dc2626;"><span style="font-weight: bold;">★</span> = Subject to withholding tax / 源泉徴収対象</div>' : ''}
                         </div>
                         
                         <div class="flex justify-end totals-section">
