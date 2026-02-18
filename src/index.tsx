@@ -1191,8 +1191,12 @@ app.get('/', (c) => {
                 const workOutsideJapan = formData.get('workPerformedOutsideJapan');
                 let workOutsideNotice = '';
                 if (residesInJapanValue === 'no' && workOutsideJapan) {
-                    workOutsideNotice = '<div class="mt-4 p-3 bg-yellow-50 border border-yellow-300 rounded text-sm"><strong>✓</strong> Declaration: All contracted work was performed outside Japan / すべての業務は日本国外で行われました</div>';
+                    workOutsideNotice = '<div class="mt-4 text-xs" style="color: #6b7280;"><strong>✓</strong> Declaration: All contracted work was performed outside Japan / すべての業務は日本国外で行われました</div>';
                 }
+                
+                // Get tax type for display
+                const taxType = formData.get('taxType');
+                const taxTypeLabel = taxType === 'inclusive' ? 'Tax Inclusive / 税込' : 'Tax Exclusive / 税抜';
                 
                 // Get issuer type label
                 const issuerTypeMap = {
@@ -1236,8 +1240,6 @@ app.get('/', (c) => {
                             </div>
                         </div>
                         
-                        \${workOutsideNotice}
-                        
                         <div class="section-spacing">
                             <h2 class="text-base font-bold mb-2">Invoice Items / 請求項目</h2>
                             <table class="w-full border-collapse border border-gray-800">
@@ -1249,7 +1251,7 @@ app.get('/', (c) => {
                                         <th class="border border-gray-800 py-1 px-1 text-left text-xs">Project<br>プロジェクト</th>
                                         <th class="border border-gray-800 py-1 px-1 text-center text-xs">Qty<br>数量</th>
                                         <th class="border border-gray-800 py-1 px-1 text-right text-xs">Unit Price<br>単価</th>
-                                        <th class="border border-gray-800 py-1 px-1 text-right text-xs">Subtotal<br>小計</th>
+                                        <th class="border border-gray-800 py-1 px-1 text-right text-xs">Subtotal<br>小計<br><span style="font-size: 9px; color: #6b7280;">(\${taxTypeLabel})</span></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -1291,6 +1293,7 @@ app.get('/', (c) => {
                         
                         <div class="mt-6 text-center text-xs" style="color: #6b7280;">
                             <p>Thank you for your business! / ご利用ありがとうございます</p>
+                            \${workOutsideNotice}
                         </div>
                         
                         <div class="mt-6 text-center no-print">
