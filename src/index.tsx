@@ -1187,10 +1187,10 @@ app.get('/', (c) => {
                 }
                 
                 // Check if work performed outside Japan should be displayed
-                const residesInJapan = formData.get('residesInJapan');
+                const residesInJapanValue = formData.get('residesInJapan');
                 const workOutsideJapan = formData.get('workPerformedOutsideJapan');
                 let workOutsideNotice = '';
-                if (residesInJapan === 'no' && workOutsideJapan) {
+                if (residesInJapanValue === 'no' && workOutsideJapan) {
                     workOutsideNotice = '<div class="mt-4 p-3 bg-yellow-50 border border-yellow-300 rounded text-sm"><strong>✓</strong> Declaration: All contracted work was performed outside Japan / すべての業務は日本国外で行われました</div>';
                 }
                 
