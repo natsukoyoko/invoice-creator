@@ -203,13 +203,13 @@ app.get('/', (c) => {
                     
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-1">
-                            適格事業者番号 / JCT Registration Number
+                            JCT Registration Number / 適格事業者番号
                         </label>
                         <input type="text" name="issuerTNumber"
                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                placeholder="T1234567890123">
                         <p class="text-xs text-gray-500 mt-1">
-                            <strong>適格事業者番号 / JCT Registration Number:</strong> もし日本で適格請求書発行事業者の登録をされている場合は、適格事業者番号をご記載ください。 / If you are a registered tax entity in Japan, please provide your JCT Registration Number (starting with 'T'). If you are a non-resident without a registration number, please leave this field blank.
+                            <strong>JCT Registration Number / 適格事業者番号:</strong> If you are a registered tax entity in Japan, please provide your JCT Registration Number (starting with 'T'). If you are a non-resident without a registration number, please leave this field blank. / もし日本で適格請求書発行事業者の登録をされている場合は、適格事業者番号をご記載ください。非居住者で登録番号をお持ちでない場合は、この欄は空欄のままにしてください。
                         </p>
                     </div>
                     
@@ -217,7 +217,7 @@ app.get('/', (c) => {
                         
                         <div class="md:col-span-2">
                             <label class="block text-sm font-medium text-gray-700 mb-1">
-                                郵便番号 / Postal Code
+                                Postal Code / 郵便番号
                             </label>
                             <input type="text" name="postalCode"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
