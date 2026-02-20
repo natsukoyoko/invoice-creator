@@ -462,7 +462,7 @@ app.get('/', (c) => {
                         </div>
                     </div>
                     
-                    <button type="button" id="addItem" class="mt-4 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition">
+                    <button type="button" id="addItem" class="mt-4 px-4 py-2 text-white rounded-md transition" style="background-color: #1C008D;" onmouseover="this.style.backgroundColor='#150070'" onmouseout="this.style.backgroundColor='#1C008D'">
                         <i class="fas fa-plus mr-2"></i>Add Item / 項目を追加
                     </button>
                     
@@ -703,12 +703,22 @@ app.get('/', (c) => {
                 <!-- Form Actions -->
                 <div class="no-print flex gap-4">
                     <button type="button" id="previewBtn" 
-                            class="flex-1 px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium text-lg">
+                            class="w-1/2 px-6 py-3 rounded-md transition font-medium text-lg" 
+                            style="background-color: #CEC9E1; color: #1C008D;"
+                            onmouseover="this.style.backgroundColor='#B8B0D5'" 
+                            onmouseout="this.style.backgroundColor='#CEC9E1'">
                         <i class="fas fa-eye mr-2"></i>Preview Invoice / プレビュー
                     </button>
                     <button type="button" id="saveBtn"
-                            class="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition font-medium text-lg">
+                            class="w-1/4 px-6 py-3 text-white rounded-md transition font-medium text-lg"
+                            style="background-color: #1C008D;"
+                            onmouseover="this.style.backgroundColor='#150070'" 
+                            onmouseout="this.style.backgroundColor='#1C008D'">
                         <i class="fas fa-save mr-2"></i>Save / 保存
+                    </button>
+                    <button type="button" id="resetBtn"
+                            class="w-1/4 px-6 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 transition font-medium text-lg">
+                        <i class="fas fa-trash mr-2"></i>Reset / リセット
                     </button>
                 </div>
             </form>
@@ -886,6 +896,15 @@ app.get('/', (c) => {
                 
                 localStorage.setItem('invoiceFormData', JSON.stringify(data));
                 alert('Form data saved successfully! / フォームデータを保存しました！');
+            }
+            
+            // Reset form data
+            function resetFormData() {
+                if (confirm('Are you sure you want to clear all saved data? This action cannot be undone.\n\n本当に保存されたデータを全て削除しますか？この操作は元に戻せません。')) {
+                    localStorage.removeItem('invoiceFormData');
+                    alert('Saved data has been cleared successfully! / 保存データを削除しました！');
+                    location.reload();
+                }
             }
             
             // Update job category options based on residence
@@ -1477,6 +1496,9 @@ app.get('/', (c) => {
                 
                 // Save button
                 document.getElementById('saveBtn').addEventListener('click', saveFormData);
+                
+                // Reset button
+                document.getElementById('resetBtn').addEventListener('click', resetFormData);
             });
         </script>
     </body>
