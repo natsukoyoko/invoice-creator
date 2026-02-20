@@ -762,7 +762,7 @@ app.get('/', (c) => {
                 { name: 'システム開発・コーディング / System Development & Coding', withholding: false },
                 { name: '商談獲得 / Business Development', withholding: false },
                 { name: '被リンク獲得 / Backlink Acquisition', withholding: false },
-                { name: 'CS業務 / Customer Support', withholding: false },
+                { name: 'CS業務・その他事務作業 / Customer Support & Administrative Work', withholding: false },
                 { name: 'その他 / Other', withholding: true, manual: true }
             ];
             
