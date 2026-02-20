@@ -209,7 +209,7 @@ app.get('/', (c) => {
                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                placeholder="T1234567890123">
                         <p class="text-xs text-gray-500 mt-1">
-                            <strong>JCT Registration Number:</strong> If you are a registered tax entity in Japan, please provide your JCT Registration Number (starting with 'T'). If you are a non-resident without a registration number, please leave this field blank.
+                            <strong>適格事業者番号 / JCT Registration Number:</strong> もし日本で適格請求書発行事業者の登録をされている場合は、適格事業者番号をご記載ください。 / If you are a registered tax entity in Japan, please provide your JCT Registration Number (starting with 'T'). If you are a non-resident without a registration number, please leave this field blank.
                         </p>
                     </div>
                     
