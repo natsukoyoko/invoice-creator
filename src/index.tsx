@@ -165,7 +165,7 @@ app.get('/', (c) => {
                         <p class="text-gray-600">外部パートナー様向けの請求書作成システム</p>
                     </div>
                     <div class="flex-shrink-0 ml-6">
-                        <img src="/images/lifepepper-logo.png" alt="LIFE PEPPER" class="h-12 w-auto opacity-75">
+                        <!-- <img src="/images/lifepepper-logo.png" alt="LIFE PEPPER" class="h-12 w-auto opacity-75"> -->
                     </div>
                 </div>
             </div>
@@ -273,9 +273,9 @@ app.get('/', (c) => {
                     
                     <div class="mt-4" id="nonJapanWorkNotice" style="display: none;">
                         <label class="flex items-center bg-yellow-50 p-3 rounded border border-yellow-200">
-                            <input type="checkbox" name="workPerformedOutsideJapan" id="workPerformedOutsideJapan" required
+                            <input type="checkbox" name="workPerformedOutsideJapan" id="workPerformedOutsideJapan"
                                    class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                            <span class="ml-2 text-sm text-gray-700 font-medium required">
+                            <span class="ml-2 text-sm text-gray-700 font-medium">
                                 Declaration: All contracted work was performed outside Japan / すべての業務は日本国外で行われました
                             </span>
                         </label>
@@ -1389,6 +1389,13 @@ app.get('/', (c) => {
                         calculateTotals();
                     });
                 });
+                
+                // Initialize workPerformedOutsideJapan checkbox state
+                const initialResidence = document.querySelector('input[name="residesInJapan"]:checked');
+                if (initialResidence && initialResidence.value === 'yes') {
+                    const checkbox = document.getElementById('workPerformedOutsideJapan');
+                    checkbox.removeAttribute('required');
+                }
                 
                 // Payment method change
                 document.getElementById('paymentMethod').addEventListener('change', function(e) {
