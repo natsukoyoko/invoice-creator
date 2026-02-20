@@ -162,7 +162,7 @@ app.get('/', (c) => {
                             <i class="fas fa-file-invoice mr-2 text-blue-600"></i>
                             Create a new invoice / 請求書を作成
                         </h1>
-                        <p class="text-gray-600">外部パートナー向けの請求書作成システム</p>
+                        <p class="text-gray-600">外部パートナー様向けの請求書作成システム</p>
                     </div>
                     <div class="flex-shrink-0 ml-6">
                         <img src="/images/lifepepper-logo.png" alt="LIFE PEPPER" class="h-12 w-auto opacity-75">
