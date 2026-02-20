@@ -202,11 +202,14 @@ app.get('/', (c) => {
                         
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">
-                                T Number / T番号
+                                適格事業者番号 / JCT Registration Number
                             </label>
                             <input type="text" name="issuerTNumber"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                    placeholder="T1234567890123">
+                            <p class="text-xs text-gray-500 mt-1">
+                                If you are a registered tax entity in Japan, please provide your JCT Registration Number (starting with 'T'). If you are a non-resident without a registration number, please leave this field blank.
+                            </p>
                         </div>
                         
                         <div class="md:col-span-2">
@@ -1232,7 +1235,7 @@ app.get('/', (c) => {
                                 <div class="text-xs space-y-1">
                                     <div class="text-xs text-gray-600">\${issuerType}</div>
                                     <div class="font-bold text-base">\${formData.get('issuerName')}</div>
-                                    \${formData.get('issuerTNumber') ? \`<div>T Number: \${formData.get('issuerTNumber')}</div>\` : ''}
+                                    \${formData.get('issuerTNumber') ? \`<div>JCT Reg. No.: \${formData.get('issuerTNumber')}</div>\` : ''}
                                     <div>\${formData.get('issuerAddress').replace(/\\n/g, '<br>')}</div>
                                     <div>Email: \${formData.get('issuerEmail')}</div>
                                     \${formData.get('issuerPhone') ? \`<div>Phone: \${formData.get('issuerPhone')}</div>\` : ''}
