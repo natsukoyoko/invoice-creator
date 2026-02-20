@@ -759,7 +759,7 @@ app.get('/', (c) => {
             const JOB_LIST_DOMESTIC = [
                 { name: 'SNS運用代行 / SNS Management', withholding: false },
                 { name: '広告運用 / Ad Operations', withholding: false },
-                { name: 'コーディング / Coding', withholding: false },
+                { name: 'システム開発・コーディング / System Development & Coding', withholding: false },
                 { name: '商談獲得 / Business Development', withholding: false },
                 { name: '被リンク獲得 / Backlink Acquisition', withholding: false },
                 { name: 'CS業務 / Customer Support', withholding: false },
