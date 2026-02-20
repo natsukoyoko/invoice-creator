@@ -900,8 +900,8 @@ app.get('/', (c) => {
             
             // Reset form data
             function resetFormData() {
-                if (confirm('Are you sure you want to clear all saved data? This action cannot be undone.\n\n本当に保存されたデータを全て削除しますか？この操作は元に戻せません。')) {
-                    localStorage.removeItem('invoiceFormData');
+                const msg = 'Are you sure you want to clear all saved data? This action cannot be undone.' + String.fromCharCode(10) + String.fromCharCode(10) + '本当に保存されたデータを全て削除しますか？この操作は元に戻せません。';
+                if (confirm(msg)) {
                     alert('Saved data has been cleared successfully! / 保存データを削除しました！');
                     location.reload();
                 }
