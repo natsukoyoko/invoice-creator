@@ -850,6 +850,7 @@ app.get('/', (c) => {
                 data.issuerType = formData.get('issuerType');
                 data.issuerName = formData.get('issuerName');
                 data.issuerTNumber = formData.get('issuerTNumber');
+                data.postalCode = formData.get('postalCode');
                 data.issuerAddress = formData.get('issuerAddress');
                 data.issuerEmail = formData.get('issuerEmail');
                 data.issuerPhone = formData.get('issuerPhone');
