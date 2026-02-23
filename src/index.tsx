@@ -165,7 +165,7 @@ app.get('/', (c) => {
                         <p class="text-gray-600">外部パートナー様向けの請求書作成システム</p>
                     </div>
                     <div class="flex-shrink-0 ml-6">
-                        <!-- <img src="/images/lifepepper-logo.png" alt="LIFE PEPPER" class="h-12 w-auto opacity-75"> -->
+                        <img src="/images/lifepepper-logo.png" alt="LIFE PEPPER" class="h-12 w-auto opacity-75">
                     </div>
                 </div>
             </div>
