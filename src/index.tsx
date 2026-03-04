@@ -1181,13 +1181,22 @@ app.get('/', (c) => {
                         }
                     }
                     
-                    // Add withholding indicator
-                    const withholdingIndicator = itemHasWithholding ? '<span style="color: #dc2626; font-weight: bold;">★</span> ' : '';
+                    // Check if tax type is tax-exempt for this item
+                    const isTaxExempt = formData.get('taxType') === 'tax-exempt';
+                    
+                    // Add indicators
+                    let indicators = '';
+                    if (itemHasWithholding) {
+                        indicators += '<span style="color: #dc2626; font-weight: bold;">★</span> ';
+                    }
+                    if (isTaxExempt) {
+                        indicators += '<span style="color: #2563eb; font-weight: bold;">●</span> ';
+                    }
                     
                     itemsHTML += \`
                         <tr class="border-b">
                             <td class="border border-gray-800 py-1 px-1" style="font-size: 9px;">\${deptDisplay}</td>
-                            <td class="border border-gray-800 py-1 px-1 text-xs">\${withholdingIndicator}\${jobCategories[i]}</td>
+                            <td class="border border-gray-800 py-1 px-1 text-xs">\${indicators}\${jobCategories[i]}</td>
                             <td class="border border-gray-800 py-1 px-1 text-xs">\${taskDetails[i]}</td>
                             <td class="border border-gray-800 py-1 px-1 text-xs">\${projectNames[i]}</td>
                             <td class="border border-gray-800 py-1 px-1 text-center text-xs">\${quantities[i]}</td>
@@ -1307,7 +1316,10 @@ app.get('/', (c) => {
                                     \${itemsHTML}
                                 </tbody>
                             </table>
-                            \${document.getElementById('withholdingRow').style.display === 'flex' ? '<div class="mt-2 text-xs" style="color: #dc2626;"><span style="font-weight: bold;">★</span> = Subject to withholding tax / 源泉徴収対象</div>' : ''}
+                            <div class="mt-2 text-xs space-y-1">
+                                \${document.getElementById('withholdingRow').style.display === 'flex' ? '<div style="color: #dc2626;"><span style="font-weight: bold;">★</span> = Subject to withholding tax / 源泉徴収対象</div>' : ''}
+                                \${formData.get('taxType') === 'tax-exempt' ? '<div style="color: #2563eb;"><span style="font-weight: bold;">●</span> = Tax exempt / 非課税対象</div>' : ''}
+                            </div>
                         </div>
                         
                         <div class="flex justify-end totals-section">
