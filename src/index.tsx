@@ -1207,6 +1207,9 @@ app.get('/', (c) => {
                 const residesInJapanRadio = document.querySelector('input[name="residesInJapan"]:checked');
                 const residesInJapan = residesInJapanRadio ? residesInJapanRadio.value === 'yes' : true;
                 
+                // Track if any item has individual tax-exempt checkbox checked
+                let hasIndividualTaxExempt = false;
+                
                 for (let i = 0; i < departments.length; i++) {
                     // Get department full name
                     let deptDisplay = '';
@@ -1246,6 +1249,11 @@ app.get('/', (c) => {
                     // Check if this item is individually tax-exempt
                     const itemTaxExemptValues = formData.getAll('itemTaxExempt[]');
                     const isItemTaxExempt = itemTaxExemptValues[i] === 'on';
+                    
+                    // Track if any item has individual tax-exempt
+                    if (isItemTaxExempt) {
+                        hasIndividualTaxExempt = true;
+                    }
                     
                     // Check if tax type is tax-exempt globally or for this item
                     const isTaxExempt = formData.get('taxType') === 'tax-exempt' || isItemTaxExempt;
@@ -1384,7 +1392,7 @@ app.get('/', (c) => {
                             </table>
                             <div class="mt-2 text-xs space-y-1">
                                 \${document.getElementById('withholdingRow').style.display === 'flex' ? '<div style="color: #dc2626;"><span style="font-weight: bold;">★</span> = Subject to withholding tax / 源泉徴収対象</div>' : ''}
-                                \${formData.get('taxType') === 'tax-exempt' ? '<div style="color: #2563eb;"><span style="font-weight: bold;">●</span> = Tax exempt / 非課税対象</div>' : ''}
+                                \${formData.get('taxType') === 'tax-exempt' || hasIndividualTaxExempt ? '<div style="color: #2563eb;"><span style="font-weight: bold;">●</span> = Tax exempt / 非課税対象</div>' : ''}
                             </div>
                         </div>
                         
