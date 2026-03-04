@@ -410,6 +410,16 @@ app.get('/', (c) => {
                                 </label>
                             </div>
                             
+                            <div class="item-tax-exempt-container mb-3" style="display: none;">
+                                <label class="flex items-center bg-blue-50 p-3 rounded border border-blue-200">
+                                    <input type="checkbox" name="itemTaxExempt[]"
+                                           class="item-tax-exempt w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                    <span class="ml-2 text-sm text-gray-700 font-medium">
+                                        Tax Exempt for this item / この項目は非課税
+                                    </span>
+                                </label>
+                            </div>
+                            
                             <div class="grid md:grid-cols-2 gap-4 mb-3">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1 required">
@@ -991,9 +1001,22 @@ app.get('/', (c) => {
                 
                 // Calculate subtotal and withholding subtotal per item
                 let hasWithholding = false;
+                let taxableSubtotal = 0; // Subtotal of taxable items (for tax calculation)
+                let taxExemptSubtotal = 0; // Subtotal of tax-exempt items
+                
                 document.querySelectorAll('.item-row').forEach(row => {
                     const itemSubtotal = parseFloat(row.querySelector('.item-subtotal').value) || 0;
                     subtotal += itemSubtotal;
+                    
+                    // Check if this item is individually tax-exempt
+                    const taxExemptCheckbox = row.querySelector('.item-tax-exempt');
+                    const isItemTaxExempt = taxExemptCheckbox && taxExemptCheckbox.checked;
+                    
+                    if (isItemTaxExempt) {
+                        taxExemptSubtotal += itemSubtotal;
+                    } else {
+                        taxableSubtotal += itemSubtotal;
+                    }
                     
                     // Check if this item requires withholding
                     const jobCategorySelect = row.querySelector('.item-job-category');
@@ -1014,7 +1037,14 @@ app.get('/', (c) => {
                     
                     if (itemHasWithholding) {
                         hasWithholding = true;
-                        withholdingSubtotal += itemSubtotal;
+                        // For withholding calculation, use tax-exclusive amount
+                        if (isItemTaxExempt) {
+                            // Already tax-exempt, use as-is
+                            withholdingSubtotal += itemSubtotal;
+                        } else {
+                            // Tax-inclusive, add as-is (will be converted later)
+                            withholdingSubtotal += itemSubtotal;
+                        }
                     }
                 });
                 
@@ -1026,13 +1056,45 @@ app.get('/', (c) => {
                 let total = 0;
                 
                 if (taxType === 'inclusive') {
-                    // Tax inclusive: subtotal already includes tax
-                    const baseAmount = subtotal / 1.1;
-                    taxAmount = subtotal - baseAmount;
+                    // Tax inclusive: calculate tax only on taxable items
+                    const taxableBaseAmount = taxableSubtotal / 1.1;
+                    taxAmount = taxableSubtotal - taxableBaseAmount;
                     
                     if (hasWithholding) {
-                        // Calculate withholding on tax-exclusive amount of withholding items
-                        withholdingBaseAmount = withholdingSubtotal / 1.1;
+                        // Calculate withholding: tax-inclusive items need conversion, tax-exempt items don't
+                        // We need to recalculate per item to get accurate withholding base
+                        withholdingBaseAmount = 0;
+                        document.querySelectorAll('.item-row').forEach(row => {
+                            const itemSubtotal = parseFloat(row.querySelector('.item-subtotal').value) || 0;
+                            const taxExemptCheckbox = row.querySelector('.item-tax-exempt');
+                            const isItemTaxExempt = taxExemptCheckbox && taxExemptCheckbox.checked;
+                            
+                            const jobCategorySelect = row.querySelector('.item-job-category');
+                            const selectedOption = jobCategorySelect.options[jobCategorySelect.selectedIndex];
+                            let itemHasWithholding = false;
+                            
+                            if (selectedOption && selectedOption.dataset.withholding === 'true') {
+                                if (selectedOption.dataset.manual === 'true') {
+                                    const withholdingCheckbox = row.querySelector('.job-category-withholding');
+                                    if (withholdingCheckbox && withholdingCheckbox.checked) {
+                                        itemHasWithholding = true;
+                                    }
+                                } else {
+                                    itemHasWithholding = true;
+                                }
+                            }
+                            
+                            if (itemHasWithholding) {
+                                if (isItemTaxExempt) {
+                                    // Tax-exempt item: use subtotal as-is
+                                    withholdingBaseAmount += itemSubtotal;
+                                } else {
+                                    // Tax-inclusive item: convert to tax-exclusive
+                                    withholdingBaseAmount += itemSubtotal / 1.1;
+                                }
+                            }
+                        });
+                        
                         withholdingAmount = withholdingBaseAmount * withholdingRate;
                         total = subtotal - withholdingAmount;
                     } else {
@@ -1181,8 +1243,12 @@ app.get('/', (c) => {
                         }
                     }
                     
-                    // Check if tax type is tax-exempt for this item
-                    const isTaxExempt = formData.get('taxType') === 'tax-exempt';
+                    // Check if this item is individually tax-exempt
+                    const itemTaxExemptValues = formData.getAll('itemTaxExempt[]');
+                    const isItemTaxExempt = itemTaxExemptValues[i] === 'on';
+                    
+                    // Check if tax type is tax-exempt globally or for this item
+                    const isTaxExempt = formData.get('taxType') === 'tax-exempt' || isItemTaxExempt;
                     
                     // Add indicators
                     let indicators = '';
@@ -1480,7 +1546,28 @@ app.get('/', (c) => {
                 });
                 
                 // Tax type change
-                document.getElementById('taxType').addEventListener('change', calculateTotals);
+                document.getElementById('taxType').addEventListener('change', function() {
+                    updateTaxExemptCheckboxVisibility();
+                    calculateTotals();
+                });
+                
+                // Function to show/hide item tax-exempt checkboxes
+                function updateTaxExemptCheckboxVisibility() {
+                    const taxType = document.getElementById('taxType').value;
+                    const showCheckboxes = taxType === 'inclusive';
+                    
+                    document.querySelectorAll('.item-tax-exempt-container').forEach(container => {
+                        container.style.display = showCheckboxes ? 'block' : 'none';
+                        // Uncheck when hiding
+                        if (!showCheckboxes) {
+                            const checkbox = container.querySelector('.item-tax-exempt');
+                            if (checkbox) checkbox.checked = false;
+                        }
+                    });
+                }
+                
+                // Initialize tax-exempt checkbox visibility
+                updateTaxExemptCheckboxVisibility();
                 
                 // Add item button
                 document.getElementById('addItem').addEventListener('click', addItemRow);
@@ -1545,6 +1632,13 @@ app.get('/', (c) => {
                 // Job category withholding checkbox change
                 document.getElementById('itemsContainer').addEventListener('change', function(e) {
                     if (e.target.matches('.job-category-withholding')) {
+                        calculateTotals();
+                    }
+                });
+                
+                // Item tax-exempt checkbox change
+                document.getElementById('itemsContainer').addEventListener('change', function(e) {
+                    if (e.target.matches('.item-tax-exempt')) {
                         calculateTotals();
                     }
                 });
