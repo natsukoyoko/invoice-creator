@@ -335,7 +335,7 @@ app.get('/', (c) => {
                         <select name="taxType" id="taxType" required
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                             <option value="inclusive">Tax Inclusive / 税込</option>
-                            <option value="exclusive">Tax Exclusive / 税抜</option>
+                            <option value="tax-exempt">Tax Exempt / 非課税</option>
                         </select>
                     </div>
                     
@@ -475,6 +475,10 @@ app.get('/', (c) => {
                             <div class="flex justify-between text-lg" id="taxRow">
                                 <span class="font-medium">Tax (10%) / 消費税:</span>
                                 <span id="taxAmount" class="font-bold">¥0</span>
+                            </div>
+                            <div class="flex justify-between text-lg text-gray-600" id="withholdingBaseRow" style="display: none;">
+                                <span class="font-medium">Withholding Base (Tax-Excl.) / 源泉対象額（税抜）:</span>
+                                <span id="withholdingBaseAmount" class="font-bold">¥0</span>
                             </div>
                             <div class="flex justify-between text-lg text-red-600" id="withholdingRow" style="display: none;">
                                 <span class="font-medium"><span id="withholdingLabel">Withholding Tax / 源泉徴収税:</span></span>
@@ -1018,6 +1022,7 @@ app.get('/', (c) => {
                 
                 let taxAmount = 0;
                 let withholdingAmount = 0;
+                let withholdingBaseAmount = 0; // Tax-exclusive base for withholding calculation
                 let total = 0;
                 
                 if (taxType === 'inclusive') {
@@ -1026,33 +1031,41 @@ app.get('/', (c) => {
                     taxAmount = subtotal - baseAmount;
                     
                     if (hasWithholding) {
-                        // Calculate withholding on tax-exclusive amount of withholding items only
-                        const withholdingBaseAmount = withholdingSubtotal / 1.1;
+                        // Calculate withholding on tax-exclusive amount of withholding items
+                        withholdingBaseAmount = withholdingSubtotal / 1.1;
                         withholdingAmount = withholdingBaseAmount * withholdingRate;
                         total = subtotal - withholdingAmount;
                     } else {
                         total = subtotal;
                     }
-                } else {
-                    // Tax exclusive
-                    taxAmount = subtotal * TAX_RATE;
+                } else if (taxType === 'tax-exempt') {
+                    // Tax exempt: no tax
+                    taxAmount = 0;
                     
                     if (hasWithholding) {
-                        // Calculate withholding on withholding items only
+                        // Calculate withholding on subtotal directly (no tax to exclude)
+                        withholdingBaseAmount = withholdingSubtotal;
                         withholdingAmount = withholdingSubtotal * withholdingRate;
-                        total = subtotal + taxAmount - withholdingAmount;
+                        total = subtotal - withholdingAmount;
                     } else {
-                        total = subtotal + taxAmount;
+                        total = subtotal;
                     }
                 }
                 
                 document.getElementById('totalSubtotal').textContent = '¥' + Math.round(subtotal).toLocaleString();
                 document.getElementById('taxAmount').textContent = '¥' + Math.round(taxAmount).toLocaleString();
+                document.getElementById('withholdingBaseAmount').textContent = '¥' + Math.round(withholdingBaseAmount).toLocaleString();
                 document.getElementById('withholdingAmount').textContent = '-¥' + Math.round(withholdingAmount).toLocaleString();
                 document.getElementById('totalAmount').textContent = '¥' + Math.round(total).toLocaleString();
                 
                 // Update withholding label with rate
                 document.getElementById('withholdingLabel').textContent = 'Withholding Tax / 源泉徴収税 (' + withholdingRatePercent + '):';;
+                
+                // Show/hide tax row (hide for tax-exempt)
+                document.getElementById('taxRow').style.display = (taxType === 'tax-exempt') ? 'none' : 'flex';
+                
+                // Show/hide withholding base row (show when withholding exists)
+                document.getElementById('withholdingBaseRow').style.display = hasWithholding ? 'flex' : 'none';
                 
                 // Show/hide withholding row
                 document.getElementById('withholdingRow').style.display = hasWithholding ? 'flex' : 'none';
@@ -1303,10 +1316,18 @@ app.get('/', (c) => {
                                     <span>Subtotal / 小計:</span>
                                     <span class="font-medium">\${document.getElementById('totalSubtotal').textContent}</span>
                                 </div>
+                                \${document.getElementById('taxRow').style.display === 'flex' ? \`
                                 <div class="flex justify-between py-1">
                                     <span>Tax (10%) / 消費税:</span>
                                     <span class="font-medium">\${document.getElementById('taxAmount').textContent}</span>
                                 </div>
+                                \` : ''}
+                                \${document.getElementById('withholdingBaseRow').style.display === 'flex' ? \`
+                                <div class="flex justify-between py-1" style="color: #6b7280;">
+                                    <span>Withholding Base (Tax-Excl.) / 源泉対象額（税抜）:</span>
+                                    <span class="font-medium">\${document.getElementById('withholdingBaseAmount').textContent}</span>
+                                </div>
+                                \` : ''}
                                 \${document.getElementById('withholdingRow').style.display === 'flex' ? \`
                                 <div class="flex justify-between py-1" style="color: #dc2626;">
                                     <span>\${document.getElementById('withholdingLabel').textContent}</span>
@@ -1405,9 +1426,34 @@ app.get('/', (c) => {
                             checkbox.setAttribute('required', 'required');
                         }
                         updateJobCategories();
+                        updateTaxTypeControl(residesInJapan);
                         calculateTotals();
                     });
                 });
+                
+                // Function to update tax type control based on residence
+                function updateTaxTypeControl(residesInJapan) {
+                    const taxTypeSelect = document.getElementById('taxType');
+                    if (residesInJapan) {
+                        // Domestic: tax-inclusive only (disabled)
+                        taxTypeSelect.value = 'inclusive';
+                        taxTypeSelect.disabled = true;
+                        taxTypeSelect.style.backgroundColor = '#f3f4f6';
+                        taxTypeSelect.style.cursor = 'not-allowed';
+                    } else {
+                        // Foreign: can choose, default to tax-exempt
+                        taxTypeSelect.disabled = false;
+                        taxTypeSelect.style.backgroundColor = '';
+                        taxTypeSelect.style.cursor = '';
+                        taxTypeSelect.value = 'tax-exempt';
+                    }
+                }
+                
+                // Initialize tax type control
+                const initialResidenceForTax = document.querySelector('input[name="residesInJapan"]:checked');
+                if (initialResidenceForTax) {
+                    updateTaxTypeControl(initialResidenceForTax.value === 'yes');
+                }
                 
                 // Initialize workPerformedOutsideJapan checkbox state
                 const initialResidence = document.querySelector('input[name="residesInJapan"]:checked');
