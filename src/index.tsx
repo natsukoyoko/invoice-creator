@@ -454,8 +454,8 @@ app.get('/', (c) => {
                                 </div>
                             </div>
                             
-                            <div class="item-tax-exempt-container mt-3" style="display: none;">
-                                <label class="flex items-center justify-end bg-gray-50 p-2 rounded border border-gray-200">
+                            <div class="item-tax-exempt-container mt-3 flex justify-end" style="display: none;">
+                                <label class="inline-flex items-center bg-gray-50 p-2 rounded border border-gray-200">
                                     <span class="mr-2 text-xs text-gray-600">
                                         Tax Exempt for this item / この項目は非課税
                                     </span>
