@@ -410,11 +410,11 @@ app.get('/', (c) => {
                                 </label>
                             </div>
                             
-                            <div class="item-tax-exempt-container mb-3" style="display: none;">
-                                <label class="flex items-center bg-blue-50 p-3 rounded border border-blue-200">
+                            <div class="item-tax-exempt-container mb-2" style="display: none;">
+                                <label class="flex items-center bg-gray-50 p-2 rounded border border-gray-200">
                                     <input type="checkbox" name="itemTaxExempt[]"
-                                           class="item-tax-exempt w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                                    <span class="ml-2 text-sm text-gray-700 font-medium">
+                                           class="item-tax-exempt w-3 h-3 text-gray-600 border-gray-300 rounded focus:ring-gray-400">
+                                    <span class="ml-2 text-xs text-gray-600">
                                         Tax Exempt for this item / この項目は非課税
                                     </span>
                                 </label>
