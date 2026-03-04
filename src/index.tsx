@@ -410,16 +410,6 @@ app.get('/', (c) => {
                                 </label>
                             </div>
                             
-                            <div class="item-tax-exempt-container mb-2" style="display: none;">
-                                <label class="flex items-center bg-gray-50 p-2 rounded border border-gray-200">
-                                    <input type="checkbox" name="itemTaxExempt[]"
-                                           class="item-tax-exempt w-3 h-3 text-gray-600 border-gray-300 rounded focus:ring-gray-400">
-                                    <span class="ml-2 text-xs text-gray-600">
-                                        Tax Exempt for this item / この項目は非課税
-                                    </span>
-                                </label>
-                            </div>
-                            
                             <div class="grid md:grid-cols-2 gap-4 mb-3">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1 required">
@@ -462,6 +452,16 @@ app.get('/', (c) => {
                                     <input type="number" name="subtotal[]" readonly
                                            class="item-subtotal w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100">
                                 </div>
+                            </div>
+                            
+                            <div class="item-tax-exempt-container mt-3" style="display: none;">
+                                <label class="flex items-center bg-gray-50 p-2 rounded border border-gray-200">
+                                    <input type="checkbox" name="itemTaxExempt[]"
+                                           class="item-tax-exempt w-3 h-3 text-gray-600 border-gray-300 rounded focus:ring-gray-400">
+                                    <span class="ml-2 text-xs text-gray-600">
+                                        Tax Exempt for this item / この項目は非課税
+                                    </span>
+                                </label>
                             </div>
                             
                             <div class="mt-3 text-right">
