@@ -714,6 +714,22 @@ app.get('/', (c) => {
                     </div>
                 </div>
 
+                <!-- Notes Section -->
+                <div class="no-print bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">
+                        Notes / 備考
+                    </h2>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Additional Notes / 備考（任意）
+                        </label>
+                        <textarea name="notes" rows="4"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                  placeholder="特記事項などがあればご記入ください"></textarea>
+                    </div>
+                </div>
+
                 <!-- Form Actions -->
                 <div class="no-print flex gap-4">
                     <button type="button" id="previewBtn" 
@@ -907,6 +923,9 @@ app.get('/', (c) => {
                 } else if (paymentMethod === 'paypal') {
                     data.paypalEmail = formData.get('paypalEmail');
                 }
+                
+                // Save notes
+                data.notes = formData.get('notes');
                 
                 localStorage.setItem('invoiceFormData', JSON.stringify(data));
                 alert('Form data saved successfully! / フォームデータを保存しました！');
@@ -1434,10 +1453,18 @@ app.get('/', (c) => {
                             </div>
                         </div>
                         
+                        \${formData.get('notes') ? \`
+                        <div class="mt-6 text-xs" style="color: #374151;">
+                            <h3 class="font-semibold mb-2" style="color: #1f2937;">Notes / 備考:</h3>
+                            <p style="white-space: pre-wrap;">\${formData.get('notes')}</p>
+                        </div>
+                        \` : ''}
+                        
+                        \${workOutsideNotice ? \`
                         <div class="mt-6 text-center text-xs" style="color: #6b7280;">
-                            <p>Thank you for your business! / ご利用ありがとうございます</p>
                             \${workOutsideNotice}
                         </div>
+                        \` : ''}
                         
                         <div class="mt-6 text-center no-print">
                             <button onclick="window.print()" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
