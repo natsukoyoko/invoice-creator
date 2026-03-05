@@ -1382,7 +1382,7 @@ app.get('/', (c) => {
                                 <div class="text-xs space-y-1">
                                     <div class="text-xs text-gray-600">\${issuerType}</div>
                                     <div class="font-bold text-base">\${formData.get('issuerName')}</div>
-                                    \${formData.get('issuerTNumber') ? \`<div>適格請求書発行事業者登録番号: \${formData.get('issuerTNumber')}</div>\` : ''}
+                                    \${formData.get('issuerTNumber') ? \`<div>適格事業者番号: \${formData.get('issuerTNumber')}</div>\` : ''}
                                     \${formData.get('postalCode') ? \`<div>〒\${formData.get('postalCode')}</div>\` : ''}
                                     <div>\${formData.get('issuerAddress').replace(/\\n/g, '<br>')}</div>
                                     <div>Email: \${formData.get('issuerEmail')}</div>
