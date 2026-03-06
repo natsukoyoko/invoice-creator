@@ -812,25 +812,36 @@ app.get('/', (c) => {
             ];
             
             const JOB_LIST_DOMESTIC = [
+                // 源泉徴収対象外
                 { name: 'SNS運用代行 / SNS Management', withholding: false },
                 { name: '広告運用 / Ad Operations', withholding: false },
                 { name: 'システム開発・コーディング / System Development & Coding', withholding: false },
                 { name: '商談獲得 / Business Development', withholding: false },
                 { name: '被リンク獲得 / Backlink Acquisition', withholding: false },
                 { name: 'CS業務・その他事務作業 / Customer Support & Administrative Work', withholding: false },
+                { name: 'PM業務(進行管理・顧客対応) / Project Management (Project Coordination & Client Communication)', withholding: false },
+                { name: 'マーケティング・実務運用支援 / Marketing & Business Operations Support', withholding: false },
+                // 源泉徴収対象 (10.21%)
+                { name: 'SNS投稿業務 (インフルエンサー / KOL) / SNS Posting (Influencer / KOL)', withholding: true },
+                { name: '翻訳業務 / Translation', withholding: true },
+                { name: 'クリエイティブ制作 / Creative Production', withholding: true },
+                // 手動選択
                 { name: 'その他 / Other', withholding: true, manual: true }
             ];
             
             const JOB_LIST_FOREIGN = [
+                // グループA - 源泉徴収対象 (20.42%)
                 { name: 'クリエイティブ制作 / Creative Production', withholding: true, group: 'A' },
                 { name: 'コンテンツ企画・制作支援 / Content Planning & Production Support', withholding: true, group: 'A' },
                 { name: 'コピー・ライティング業務 / Copywriting', withholding: true, group: 'A' },
                 { name: '動画・画像編集 / Video & Image Editing', withholding: true, group: 'A' },
-                { name: 'SNS関連業務 / SNS Related Work', withholding: false, group: 'B' },
+                { name: '翻訳業務 / Translation', withholding: true, group: 'A' },
+                // グループB - 源泉徴収対象外
+                { name: 'SNS投稿業務 (インフルエンサー / KOL) / SNS Posting (Influencer / KOL)', withholding: false, group: 'B' },
                 { name: 'インフルエンサー管理・調整業務 / Influencer Management', withholding: false, group: 'B' },
-                { name: '翻訳業務 / Translation', withholding: false, group: 'B' },
                 { name: '広告運用 / Ad Operations', withholding: false, group: 'B' },
                 { name: '商談獲得 / Business Development', withholding: false, group: 'B' },
+                // 手動選択
                 { name: 'その他 / Other', withholding: true, group: 'Manual', manual: true }
             ];
             
