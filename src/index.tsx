@@ -886,12 +886,18 @@ app.get('/', (c) => {
                 'CAD': 'C$'
             };
             
-            // Get currency symbol
+            // Get currency symbol or code
             function getCurrencySymbol() {
                 const currencySelect = document.getElementById('currency');
                 if (!currencySelect) return '¥';
                 const currency = currencySelect.value || 'JPY';
-                return CURRENCY_SYMBOLS[currency] || '¥';
+                
+                // Only use symbol for JPY, use currency code for others
+                if (currency === 'JPY') {
+                    return '¥';
+                }
+                
+                return currency + ' ';
             }
             
             // Form state management
@@ -1269,9 +1275,9 @@ app.get('/', (c) => {
                 
                 const formData = new FormData(form);
                 
-                // Get currency symbol
+                // Get currency symbol or code
                 const currency = formData.get('currency') || 'JPY';
-                const currencySymbol = CURRENCY_SYMBOLS[currency] || '¥';
+                const currencySymbol = currency === 'JPY' ? '¥' : currency + ' ';
                 
                 // Build items HTML
                 let itemsHTML = '';
