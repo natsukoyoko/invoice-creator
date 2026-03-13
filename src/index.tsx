@@ -276,7 +276,7 @@ app.get('/', (c) => {
                             <input type="checkbox" name="workPerformedOutsideJapan" id="workPerformedOutsideJapan"
                                    class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
                             <span class="ml-2 text-sm text-gray-700 font-medium">
-                                Declaration: All contracted work was performed outside Japan / すべての業務は日本国外で行われました
+                                Declaration: All contracted work was performed outside Japan / すべての業務(投稿など)は日本国外で行われました
                             </span>
                         </label>
                     </div>
@@ -336,6 +336,27 @@ app.get('/', (c) => {
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                             <option value="inclusive">Tax Inclusive / 税込</option>
                             <option value="tax-exempt">Tax Exempt / 非課税</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1 required">
+                            Currency / 通貨
+                        </label>
+                        <select name="currency" id="currency" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="JPY">¥ JPY (Japanese Yen / 日本円)</option>
+                            <option value="USD">$ USD (US Dollar / 米ドル)</option>
+                            <option value="EUR">€ EUR (Euro / ユーロ)</option>
+                            <option value="GBP">£ GBP (British Pound / 英ポンド)</option>
+                            <option value="CNY">¥ CNY (Chinese Yuan / 人民元)</option>
+                            <option value="KRW">₩ KRW (Korean Won / 韓国ウォン)</option>
+                            <option value="TWD">NT$ TWD (Taiwan Dollar / 台湾ドル)</option>
+                            <option value="THB">฿ THB (Thai Baht / タイバーツ)</option>
+                            <option value="VND">₫ VND (Vietnamese Dong / ベトナムドン)</option>
+                            <option value="SGD">S$ SGD (Singapore Dollar / シンガポールドル)</option>
+                            <option value="AUD">A$ AUD (Australian Dollar / 豪ドル)</option>
+                            <option value="CAD">C$ CAD (Canadian Dollar / カナダドル)</option>
                         </select>
                     </div>
                     
@@ -849,6 +870,30 @@ app.get('/', (c) => {
             const WITHHOLDING_RATE_DOMESTIC = 0.1021;
             const WITHHOLDING_RATE_FOREIGN = 0.2042;
             
+            // Currency symbols
+            const CURRENCY_SYMBOLS = {
+                'JPY': '¥',
+                'USD': '$',
+                'EUR': '€',
+                'GBP': '£',
+                'CNY': '¥',
+                'KRW': '₩',
+                'TWD': 'NT$',
+                'THB': '฿',
+                'VND': '₫',
+                'SGD': 'S$',
+                'AUD': 'A$',
+                'CAD': 'C$'
+            };
+            
+            // Get currency symbol
+            function getCurrencySymbol() {
+                const currencySelect = document.getElementById('currency');
+                if (!currencySelect) return '¥';
+                const currency = currencySelect.value || 'JPY';
+                return CURRENCY_SYMBOLS[currency] || '¥';
+            }
+            
             // Form state management
             let formData = {};
             
@@ -906,6 +951,7 @@ app.get('/', (c) => {
                 data.issuerEmail = formData.get('issuerEmail');
                 data.issuerPhone = formData.get('issuerPhone');
                 data.residesInJapan = formData.get('residesInJapan');
+                data.currency = formData.get('currency');
                 data.paymentMethod = formData.get('paymentMethod');
                 
                 // Save payment information based on method
@@ -1144,11 +1190,12 @@ app.get('/', (c) => {
                     }
                 }
                 
-                document.getElementById('totalSubtotal').textContent = '¥' + Math.round(subtotal).toLocaleString();
-                document.getElementById('taxAmount').textContent = '¥' + Math.round(taxAmount).toLocaleString();
-                document.getElementById('withholdingBaseAmount').textContent = '¥' + Math.round(withholdingBaseAmount).toLocaleString();
-                document.getElementById('withholdingAmount').textContent = '-¥' + Math.round(withholdingAmount).toLocaleString();
-                document.getElementById('totalAmount').textContent = '¥' + Math.round(total).toLocaleString();
+                const currencySymbol = getCurrencySymbol();
+                document.getElementById('totalSubtotal').textContent = currencySymbol + Math.round(subtotal).toLocaleString();
+                document.getElementById('taxAmount').textContent = currencySymbol + Math.round(taxAmount).toLocaleString();
+                document.getElementById('withholdingBaseAmount').textContent = currencySymbol + Math.round(withholdingBaseAmount).toLocaleString();
+                document.getElementById('withholdingAmount').textContent = '-' + currencySymbol + Math.round(withholdingAmount).toLocaleString();
+                document.getElementById('totalAmount').textContent = currencySymbol + Math.round(total).toLocaleString();
                 
                 // Update withholding label with rate
                 document.getElementById('withholdingLabel').textContent = 'Withholding Tax / 源泉徴収税 (' + withholdingRatePercent + '):';;
@@ -1221,6 +1268,10 @@ app.get('/', (c) => {
                 }
                 
                 const formData = new FormData(form);
+                
+                // Get currency symbol
+                const currency = formData.get('currency') || 'JPY';
+                const currencySymbol = CURRENCY_SYMBOLS[currency] || '¥';
                 
                 // Build items HTML
                 let itemsHTML = '';
@@ -1304,8 +1355,8 @@ app.get('/', (c) => {
                             <td class="border border-gray-800 py-1 px-1 text-xs">\${taskDetails[i]}</td>
                             <td class="border border-gray-800 py-1 px-1 text-xs">\${projectNames[i]}</td>
                             <td class="border border-gray-800 py-1 px-1 text-center text-xs">\${quantities[i]}</td>
-                            <td class="border border-gray-800 py-1 px-1 text-right text-xs">¥\${parseFloat(unitPrices[i]).toLocaleString()}</td>
-                            <td class="border border-gray-800 py-1 px-1 text-right text-xs font-medium">¥\${parseFloat(subtotals[i]).toLocaleString()}</td>
+                            <td class="border border-gray-800 py-1 px-1 text-right text-xs">\${currencySymbol}\${parseFloat(unitPrices[i]).toLocaleString()}</td>
+                            <td class="border border-gray-800 py-1 px-1 text-right text-xs font-medium">\${currencySymbol}\${parseFloat(subtotals[i]).toLocaleString()}</td>
                         </tr>
                     \`;
                 }
@@ -1352,7 +1403,7 @@ app.get('/', (c) => {
                 const workOutsideJapan = formData.get('workPerformedOutsideJapan');
                 let workOutsideNotice = '';
                 if (residesInJapanValue === 'no' && workOutsideJapan) {
-                    workOutsideNotice = '<div class="mt-4 text-xs" style="color: #6b7280;"><strong>✓</strong> Declaration: All contracted work was performed outside Japan / すべての業務は日本国外で行われました</div>';
+                    workOutsideNotice = '<div class="mt-4 text-xs" style="color: #6b7280;"><strong>✓</strong> Declaration: All contracted work was performed outside Japan / すべての業務(投稿など)は日本国外で行われました</div>';
                 }
                 
                 // Get tax type for display
@@ -1594,6 +1645,11 @@ app.get('/', (c) => {
                 // Tax type change
                 document.getElementById('taxType').addEventListener('change', function() {
                     updateTaxExemptCheckboxVisibility();
+                    calculateTotals();
+                });
+                
+                // Currency change listener
+                document.getElementById('currency').addEventListener('change', function() {
                     calculateTotals();
                 });
                 
