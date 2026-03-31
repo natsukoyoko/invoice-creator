@@ -271,6 +271,16 @@ app.get('/', (c) => {
                         </div>
                     </div>
                     
+                    <!-- Country input for non-Japan residents -->
+                    <div class="mt-4" id="countryInput" style="display: none;">
+                        <label class="block text-sm font-medium text-gray-700 mb-1 required">
+                            Country of Residence / 居住国
+                        </label>
+                        <input type="text" name="countryOfResidence" id="countryOfResidence"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="e.g., United States, China, Thailand">
+                    </div>
+                    
                     <div class="mt-4" id="nonJapanWorkNotice" style="display: none;">
                         <label class="flex items-center bg-yellow-50 p-3 rounded border border-yellow-200">
                             <input type="checkbox" name="workPerformedOutsideJapan" id="workPerformedOutsideJapan"
@@ -957,6 +967,7 @@ app.get('/', (c) => {
                 data.issuerEmail = formData.get('issuerEmail');
                 data.issuerPhone = formData.get('issuerPhone');
                 data.residesInJapan = formData.get('residesInJapan');
+                data.countryOfResidence = formData.get('countryOfResidence');
                 data.currency = formData.get('currency');
                 data.paymentMethod = formData.get('paymentMethod');
                 
@@ -1451,6 +1462,7 @@ app.get('/', (c) => {
                                     <div class="text-xs text-gray-600">\${issuerType}</div>
                                     <div class="font-bold text-base">\${formData.get('issuerName')}</div>
                                     \${formData.get('issuerTNumber') ? \`<div>適格事業者番号: \${formData.get('issuerTNumber')}</div>\` : ''}
+                                    \${formData.get('countryOfResidence') ? \`<div>Country: \${formData.get('countryOfResidence')}</div>\` : ''}
                                     \${formData.get('postalCode') ? \`<div>〒\${formData.get('postalCode')}</div>\` : ''}
                                     <div>\${formData.get('issuerAddress').replace(/\\n/g, '<br>')}</div>
                                     <div>Email: \${formData.get('issuerEmail')}</div>
@@ -1588,6 +1600,17 @@ app.get('/', (c) => {
                     postalCodeLabel.classList.remove('required');
                 }
                 
+                // Initialize country input visibility based on residence
+                const countryInputDiv = document.getElementById('countryInput');
+                const countryInputField = document.getElementById('countryOfResidence');
+                if (initialResidenceInJapan) {
+                    countryInputDiv.style.display = 'none';
+                    countryInputField.removeAttribute('required');
+                } else {
+                    countryInputDiv.style.display = 'block';
+                    countryInputField.setAttribute('required', 'required');
+                }
+                
                 // Update withholding notice visibility based on issuer type
                 function updateWithholdingNoticeVisibility() {
                     const issuerType = document.querySelector('[name="issuerType"]').value;
@@ -1631,6 +1654,20 @@ app.get('/', (c) => {
                             // Foreign: postal code is optional
                             postalCodeInput.removeAttribute('required');
                             postalCodeLabel.classList.remove('required');
+                        }
+                        
+                        // Update country input visibility and requirement
+                        const countryInputDiv = document.getElementById('countryInput');
+                        const countryInputField = document.getElementById('countryOfResidence');
+                        if (residesInJapan) {
+                            // Domestic: hide and remove requirement
+                            countryInputDiv.style.display = 'none';
+                            countryInputField.removeAttribute('required');
+                            countryInputField.value = ''; // Clear value
+                        } else {
+                            // Foreign: show and make required
+                            countryInputDiv.style.display = 'block';
+                            countryInputField.setAttribute('required', 'required');
                         }
                         
                         updateJobCategories();
