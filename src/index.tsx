@@ -201,6 +201,18 @@ app.get('/', (c) => {
                         </div>
                     </div>
                     
+                    <div class="mb-4" id="corporateNumberInput" style="display: none;">
+                        <label class="block text-sm font-medium text-gray-700 mb-1" id="corporateNumberLabel">
+                            Corporate Number / 法人番号
+                        </label>
+                        <input type="text" name="corporateNumber" id="corporateNumber"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="1234567890123">
+                        <p class="text-xs text-gray-500 mt-1">
+                            <strong>Corporate Number / 法人番号:</strong> If your issuer type is 'Corporation' and you reside in Japan, please provide your Corporate Number (13 digits). / 発行者タイプが「法人」で日本在住の場合は、法人番号（13桁）を入力してください。
+                        </p>
+                    </div>
+                    
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-1">
                             JCT Registration Number / 適格事業者番号
@@ -922,6 +934,7 @@ app.get('/', (c) => {
                         // Populate issuer fields
                         if (data.issuerType) document.querySelector('[name="issuerType"]').value = data.issuerType;
                         if (data.issuerName) document.querySelector('[name="issuerName"]').value = data.issuerName;
+                        if (data.corporateNumber) document.querySelector('[name="corporateNumber"]').value = data.corporateNumber;
                         if (data.issuerTNumber) document.querySelector('[name="issuerTNumber"]').value = data.issuerTNumber;
                         if (data.issuerAddress) document.querySelector('[name="issuerAddress"]').value = data.issuerAddress;
                         if (data.issuerEmail) document.querySelector('[name="issuerEmail"]').value = data.issuerEmail;
@@ -961,6 +974,7 @@ app.get('/', (c) => {
                 // Save issuer information
                 data.issuerType = formData.get('issuerType');
                 data.issuerName = formData.get('issuerName');
+                data.corporateNumber = formData.get('corporateNumber');
                 data.issuerTNumber = formData.get('issuerTNumber');
                 data.postalCode = formData.get('postalCode');
                 data.issuerAddress = formData.get('issuerAddress');
@@ -1461,6 +1475,7 @@ app.get('/', (c) => {
                                 <div class="text-xs space-y-1">
                                     <div class="text-xs text-gray-600">\${issuerType}</div>
                                     <div class="font-bold text-base">\${formData.get('issuerName')}</div>
+                                    \${formData.get('corporateNumber') ? \`<div>法人番号: \${formData.get('corporateNumber')}</div>\` : ''}
                                     \${formData.get('issuerTNumber') ? \`<div>適格事業者番号: \${formData.get('issuerTNumber')}</div>\` : ''}
                                     \${formData.get('countryOfResidence') ? \`<div>Country: \${formData.get('countryOfResidence')}</div>\` : ''}
                                     \${formData.get('postalCode') ? \`<div>〒\${formData.get('postalCode')}</div>\` : ''}
@@ -1623,11 +1638,40 @@ app.get('/', (c) => {
                     }
                 }
                 
+                // Update corporate number visibility based on issuer type and residence
+                function updateCorporateNumberVisibility() {
+                    const issuerType = document.querySelector('[name="issuerType"]').value;
+                    const residenceRadio = document.querySelector('input[name="residesInJapan"]:checked');
+                    const residesInJapan = residenceRadio ? residenceRadio.value === 'yes' : true;
+                    
+                    const corporateNumberDiv = document.getElementById('corporateNumberInput');
+                    const corporateNumberField = document.getElementById('corporateNumber');
+                    const corporateNumberLabel = document.getElementById('corporateNumberLabel');
+                    
+                    // Show and require only if: issuerType === 'corporation' AND residesInJapan === true
+                    if (issuerType === 'corporation' && residesInJapan) {
+                        corporateNumberDiv.style.display = 'block';
+                        corporateNumberField.setAttribute('required', 'required');
+                        corporateNumberLabel.classList.add('required');
+                    } else {
+                        corporateNumberDiv.style.display = 'none';
+                        corporateNumberField.removeAttribute('required');
+                        corporateNumberField.value = '';
+                        corporateNumberLabel.classList.remove('required');
+                    }
+                }
+                
                 // Issuer type change
-                document.querySelector('[name="issuerType"]').addEventListener('change', updateWithholdingNoticeVisibility);
+                document.querySelector('[name="issuerType"]').addEventListener('change', function() {
+                    updateWithholdingNoticeVisibility();
+                    updateCorporateNumberVisibility();
+                });
                 
                 // Initialize withholding notice visibility
                 updateWithholdingNoticeVisibility();
+                
+                // Initialize corporate number visibility
+                updateCorporateNumberVisibility();
                 
                 // Residence change
                 document.querySelectorAll('input[name="residesInJapan"]').forEach(radio => {
@@ -1669,6 +1713,9 @@ app.get('/', (c) => {
                             countryInputDiv.style.display = 'block';
                             countryInputField.setAttribute('required', 'required');
                         }
+                        
+                        // Update corporate number visibility
+                        updateCorporateNumberVisibility();
                         
                         updateJobCategories();
                         updateTaxTypeControl(residesInJapan);
