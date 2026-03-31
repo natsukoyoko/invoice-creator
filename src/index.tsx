@@ -216,10 +216,10 @@ app.get('/', (c) => {
                     <div class="grid md:grid-cols-2 gap-4 mb-4">
                         
                         <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                            <label class="block text-sm font-medium text-gray-700 mb-1" id="postalCodeLabel">
                                 Postal Code / 郵便番号
                             </label>
-                            <input type="text" name="postalCode"
+                            <input type="text" name="postalCode" id="postalCode"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                    placeholder="123-4567">
                         </div>
@@ -1575,6 +1575,19 @@ app.get('/', (c) => {
                 // Initialize job categories
                 updateJobCategories();
                 
+                // Initialize postal code requirement based on residence
+                const initialResidenceRadio = document.querySelector('input[name="residesInJapan"]:checked');
+                const initialResidenceInJapan = initialResidenceRadio ? initialResidenceRadio.value === 'yes' : true;
+                const postalCodeInput = document.getElementById('postalCode');
+                const postalCodeLabel = document.getElementById('postalCodeLabel');
+                if (initialResidenceInJapan) {
+                    postalCodeInput.setAttribute('required', 'required');
+                    postalCodeLabel.classList.add('required');
+                } else {
+                    postalCodeInput.removeAttribute('required');
+                    postalCodeLabel.classList.remove('required');
+                }
+                
                 // Update withholding notice visibility based on issuer type
                 function updateWithholdingNoticeVisibility() {
                     const issuerType = document.querySelector('[name="issuerType"]').value;
@@ -1606,6 +1619,20 @@ app.get('/', (c) => {
                         } else {
                             checkbox.setAttribute('required', 'required');
                         }
+                        
+                        // Update postal code requirement
+                        const postalCodeInput = document.getElementById('postalCode');
+                        const postalCodeLabel = document.getElementById('postalCodeLabel');
+                        if (residesInJapan) {
+                            // Domestic: postal code is required
+                            postalCodeInput.setAttribute('required', 'required');
+                            postalCodeLabel.classList.add('required');
+                        } else {
+                            // Foreign: postal code is optional
+                            postalCodeInput.removeAttribute('required');
+                            postalCodeLabel.classList.remove('required');
+                        }
+                        
                         updateJobCategories();
                         updateTaxTypeControl(residesInJapan);
                         calculateTotals();
