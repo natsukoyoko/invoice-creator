@@ -1739,6 +1739,17 @@ app.get('/', (c) => {
                         taxTypeSelect.style.cursor = '';
                         taxTypeSelect.value = 'tax-exempt';
                     }
+                    
+                    // Update tax-exempt checkbox visibility after changing tax type
+                    const taxType = taxTypeSelect.value;
+                    const showCheckboxes = taxType === 'inclusive';
+                    document.querySelectorAll('.item-tax-exempt-container').forEach(container => {
+                        container.style.display = showCheckboxes ? 'block' : 'none';
+                        if (!showCheckboxes) {
+                            const checkbox = container.querySelector('.item-tax-exempt');
+                            if (checkbox) checkbox.checked = false;
+                        }
+                    });
                 }
                 
                 // Initialize tax type control
