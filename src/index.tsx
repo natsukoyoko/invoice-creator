@@ -357,7 +357,7 @@ app.get('/', (c) => {
                         <select name="taxType" id="taxType" required
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                             <option value="inclusive">Tax Inclusive / 税込</option>
-                            <option value="tax-exempt">Tax Exempt / 非課税</option>
+                            <option value="tax-exempt">No Tax / 課税なし</option>
                         </select>
                     </div>
                     
@@ -502,7 +502,7 @@ app.get('/', (c) => {
                                     <input type="checkbox" name="itemTaxExempt[]"
                                            class="item-tax-exempt w-3 h-3 text-gray-600 border-gray-300 rounded focus:ring-gray-400">
                                     <span class="ml-2">
-                                        Tax Exempt / 非課税
+                                        No Tax / 課税なし
                                     </span>
                                 </label>
                             </div>
@@ -1506,7 +1506,7 @@ app.get('/', (c) => {
                             </table>
                             <div class="mt-2 text-xs space-y-1">
                                 \${document.getElementById('withholdingRow').style.display === 'flex' ? '<div style="color: #dc2626;"><span style="font-weight: bold;">★</span> = Subject to withholding tax / 源泉徴収対象</div>' : ''}
-                                \${formData.get('taxType') === 'tax-exempt' || hasIndividualTaxExempt ? '<div style="color: #2563eb;"><span style="font-weight: bold;">●</span> = Tax exempt / 非課税対象</div>' : ''}
+                                \${formData.get('taxType') === 'tax-exempt' || hasIndividualTaxExempt ? '<div style="color: #2563eb;"><span style="font-weight: bold;">●</span> = No Tax / 課税なし</div>' : ''}
                             </div>
                         </div>
                         
