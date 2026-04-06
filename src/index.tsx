@@ -416,6 +416,23 @@ app.get('/', (c) => {
                         Invoice Items / 請求項目
                     </h2>
                     
+                    <!-- CSV Import/Export Controls -->
+                    <div class="mb-4 flex gap-2 flex-wrap">
+                        <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+                        <button type="button" id="downloadTemplateCsvBtn" 
+                                class="px-3 py-1.5 bg-gray-100 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-200 transition text-xs">
+                            <i class="fas fa-download mr-1"></i>CSV Template
+                        </button>
+                        <button type="button" id="exportCsvBtn" 
+                                class="px-3 py-1.5 bg-gray-100 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-200 transition text-xs">
+                            <i class="fas fa-file-export mr-1"></i>CSV Export
+                        </button>
+                        <button type="button" id="importCsvBtn" 
+                                class="px-3 py-1.5 bg-gray-100 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-200 transition text-xs">
+                            <i class="fas fa-file-import mr-1"></i>CSV Import
+                        </button>
+                    </div>
+                    
                     <div id="itemsContainer" class="space-y-4">
                         <div class="item-row border border-gray-200 rounded-lg p-4">
                             <div class="grid md:grid-cols-3 gap-4 mb-3">
@@ -2316,7 +2333,246 @@ app.get('/', (c) => {
                 
                 // Reset button
                 document.getElementById('resetBtn').addEventListener('click', resetFormData);
+                
+                // CSV Import button
+                document.getElementById('importCsvBtn').addEventListener('click', function() {
+                    document.getElementById('csvFileInput').click();
+                });
+                
+                // CSV file input change
+                document.getElementById('csvFileInput').addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        try {
+                            importCsvData(event.target.result);
+                            e.target.value = ''; // Reset input
+                        } catch (error) {
+                            alert('CSV の読み込みに失敗しました: ' + error.message);
+                        }
+                    };
+                    reader.readAsText(file);
+                });
+                
+                // CSV Export button
+                document.getElementById('exportCsvBtn').addEventListener('click', exportCsvData);
+                
+                // CSV Template download button
+                document.getElementById('downloadTemplateCsvBtn').addEventListener('click', downloadCsvTemplate);
             });
+            
+            // CSV Import function
+            function importCsvData(csvText) {
+                const lines = csvText.trim().split(String.fromCharCode(10));
+                if (lines.length < 2) {
+                    throw new Error('CSV ファイルにデータがありません');
+                }
+                
+                // Parse header
+                const header = lines[0].split(',').map(h => h.trim());
+                const expectedHeaders = ['部署', '業務カテゴリ', '業務詳細', '案件名', '数量', '単価', '課税なし'];
+                
+                // Validate header
+                const headerValid = expectedHeaders.every((h, i) => header[i] === h);
+                if (!headerValid) {
+                    throw new Error('CSV のヘッダーが正しくありません。テンプレートをダウンロードして確認してください。');
+                }
+                
+                // Clear existing items
+                const container = document.getElementById('itemsContainer');
+                container.innerHTML = '';
+                
+                // Parse and add items
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    
+                    const values = parseCSVLine(line);
+                    if (values.length !== 7) {
+                        throw new Error('行 ' + (i + 1) + ': カラム数が正しくありません（期待: 7、実際: ' + values.length + '）');
+                    }
+                    
+                    const [department, jobCategory, taskDetail, projectName, quantity, unitPrice, taxExempt] = values;
+                    
+                    // Validate required fields
+                    if (!department || !jobCategory || !quantity || !unitPrice) {
+                        throw new Error('行 ' + (i + 1) + ': 必須項目が不足しています');
+                    }
+                    
+                    // Validate numbers
+                    const qty = parseFloat(quantity);
+                    const price = parseFloat(unitPrice);
+                    if (isNaN(qty) || qty < 0.01) {
+                        throw new Error('行 ' + (i + 1) + ': 数量が無効です（' + quantity + '）');
+                    }
+                    if (isNaN(price) || price < 0) {
+                        throw new Error('行 ' + (i + 1) + ': 単価が無効です（' + unitPrice + '）');
+                    }
+                    
+                    // Add item row
+                    addItemRow();
+                    
+                    // Fill in the values
+                    const rows = container.querySelectorAll('.item-row');
+                    const lastRow = rows[rows.length - 1];
+                    
+                    // Department
+                    const deptSelect = lastRow.querySelector('[name="department[]"]');
+                    deptSelect.value = department;
+                    const deptEvent = new Event('change', { bubbles: true });
+                    deptSelect.dispatchEvent(deptEvent);
+                    
+                    // If "other" department, fill in the text field
+                    if (department === 'other') {
+                        const otherDeptInput = lastRow.querySelector('[name="departmentOther[]"]');
+                        if (otherDeptInput) {
+                            otherDeptInput.value = jobCategory.split(' - ')[0] || '';
+                        }
+                    }
+                    
+                    // Job category
+                    setTimeout(() => {
+                        const jobSelect = lastRow.querySelector('[name="jobCategory[]"]');
+                        if (jobSelect) {
+                            jobSelect.value = jobCategory;
+                            const jobEvent = new Event('change', { bubbles: true });
+                            jobSelect.dispatchEvent(jobEvent);
+                        }
+                        
+                        // Task detail
+                        const taskInput = lastRow.querySelector('[name="taskDetail[]"]');
+                        if (taskInput) taskInput.value = taskDetail || '';
+                        
+                        // Project name
+                        const projectInput = lastRow.querySelector('[name="projectName[]"]');
+                        if (projectInput) projectInput.value = projectName || '';
+                        
+                        // Quantity
+                        const qtyInput = lastRow.querySelector('[name="quantity[]"]');
+                        if (qtyInput) {
+                            qtyInput.value = qty;
+                            const qtyEvent = new Event('input', { bubbles: true });
+                            qtyInput.dispatchEvent(qtyEvent);
+                        }
+                        
+                        // Unit price
+                        const priceInput = lastRow.querySelector('[name="unitPrice[]"]');
+                        if (priceInput) {
+                            priceInput.value = price;
+                            const priceEvent = new Event('input', { bubbles: true });
+                            priceInput.dispatchEvent(priceEvent);
+                        }
+                        
+                        // Tax exempt
+                        const taxExemptCheckbox = lastRow.querySelector('.item-tax-exempt');
+                        if (taxExemptCheckbox && (taxExempt === '1' || taxExempt === 'true' || taxExempt === 'TRUE')) {
+                            taxExemptCheckbox.checked = true;
+                        }
+                        
+                        calculateTotals();
+                    }, 100 * i); // Delay to allow DOM updates
+                }
+                
+                alert((lines.length - 1) + ' 件の請求項目をインポートしました');
+            }
+            
+            // Parse CSV line with proper handling of quoted fields
+            function parseCSVLine(line) {
+                const result = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    
+                    if (char === '"') {
+                        if (inQuotes && line[i + 1] === '"') {
+                            current += '"';
+                            i++;
+                        } else {
+                            inQuotes = !inQuotes;
+                        }
+                    } else if (char === ',' && !inQuotes) {
+                        result.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                result.push(current.trim());
+                
+                return result;
+            }
+            
+            // CSV Export function
+            function exportCsvData() {
+                const rows = document.querySelectorAll('.item-row');
+                if (rows.length === 0) {
+                    alert('エクスポートする請求項目がありません');
+                    return;
+                }
+                
+                // CSV header
+                let csv = '部署,業務カテゴリ,業務詳細,案件名,数量,単価,課税なし' + String.fromCharCode(10);
+                
+                // CSV data rows
+                rows.forEach(row => {
+                    const department = row.querySelector('[name="department[]"]')?.value || '';
+                    const departmentOther = row.querySelector('[name="departmentOther[]"]')?.value || '';
+                    const jobCategory = row.querySelector('[name="jobCategory[]"]')?.value || '';
+                    const taskDetail = row.querySelector('[name="taskDetail[]"]')?.value || '';
+                    const projectName = row.querySelector('[name="projectName[]"]')?.value || '';
+                    const quantity = row.querySelector('[name="quantity[]"]')?.value || '';
+                    const unitPrice = row.querySelector('[name="unitPrice[]"]')?.value || '';
+                    const taxExempt = row.querySelector('.item-tax-exempt')?.checked ? '1' : '0';
+                    
+                    // Use departmentOther if department is "other"
+                    const deptValue = department === 'other' ? departmentOther : department;
+                    
+                    // Escape fields that contain commas or quotes
+                    const fields = [deptValue, jobCategory, taskDetail, projectName, quantity, unitPrice, taxExempt];
+                    const escapedFields = fields.map(field => {
+                        const str = String(field);
+                        if (str.includes(',') || str.includes('"') || str.includes(String.fromCharCode(10))) {
+                            return '"' + str.replace(/"/g, '""') + '"';
+                        }
+                        return str;
+                    });
+                    
+                    csv += escapedFields.join(',') + String.fromCharCode(10);
+                });
+                
+                // Create download link
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', '請求項目_' + new Date().toISOString().slice(0, 10) + '.csv');
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+            
+            // Download CSV template
+            function downloadCsvTemplate() {
+                const csv = '部署,業務カテゴリ,業務詳細,案件名,数量,単価,課税なし' + String.fromCharCode(10) +
+                            'A-01,翻訳業務,英日翻訳,プロジェクトX,5.5,5000,0' + String.fromCharCode(10) +
+                            'B-02,SNS投稿,Instagram投稿作成,キャンペーンY,10,3000,0' + String.fromCharCode(10) +
+                            'C-03,動画編集,YouTube動画編集,動画Z,2,15000,1' + String.fromCharCode(10);
+                
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'template_請求項目.csv');
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
         </script>
     </body>
     </html>
