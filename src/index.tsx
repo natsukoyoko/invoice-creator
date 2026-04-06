@@ -1599,6 +1599,11 @@ app.get('/', (c) => {
                 preview.innerHTML = previewHTML;
                 preview.style.display = 'block';
                 
+                // Update page title for PDF filename
+                const invoiceDate = formData.get('invoiceDate') || '';
+                const issuerName = formData.get('issuerName') || '請求書';
+                document.title = invoiceDate + '_' + issuerName;
+                
                 // Hide form
                 document.getElementById('invoiceForm').style.display = 'none';
                 document.querySelector('.no-print.bg-white.rounded-lg.shadow-md.p-6.mb-6').style.display = 'none';
@@ -1611,6 +1616,9 @@ app.get('/', (c) => {
                 document.getElementById('invoicePreview').style.display = 'none';
                 document.getElementById('invoiceForm').style.display = 'block';
                 document.querySelector('.no-print.bg-white.rounded-lg.shadow-md.p-6.mb-6').style.display = 'block';
+                
+                // Restore original title
+                document.title = 'Invoice / 請求書作成';
             }
             
             // Generate Work Report Preview (Invoice Summary + Detailed Report)
@@ -1989,6 +1997,11 @@ app.get('/', (c) => {
                 const preview = document.getElementById('invoicePreview');
                 preview.innerHTML = previewHTML;
                 preview.style.display = 'block';
+                
+                // Update page title for PDF filename
+                const invoiceDate = formData.get('invoiceDate') || '';
+                const issuerName = formData.get('issuerName') || '請求書';
+                document.title = invoiceDate + '_' + issuerName + '_作業報告書付き';
                 
                 // Hide form
                 document.getElementById('invoiceForm').style.display = 'none';
