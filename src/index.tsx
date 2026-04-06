@@ -1600,9 +1600,9 @@ app.get('/', (c) => {
                 preview.style.display = 'block';
                 
                 // Update page title for PDF filename
-                const invoiceDate = formData.get('invoiceDate') || '';
+                const dueDate = formData.get('dueDate') || '';
                 const issuerName = formData.get('issuerName') || '請求書';
-                document.title = invoiceDate + '_' + issuerName;
+                document.title = dueDate + '_' + issuerName;
                 
                 // Hide form
                 document.getElementById('invoiceForm').style.display = 'none';
@@ -1999,9 +1999,9 @@ app.get('/', (c) => {
                 preview.style.display = 'block';
                 
                 // Update page title for PDF filename
-                const invoiceDate = formData.get('invoiceDate') || '';
+                const dueDate = formData.get('dueDate') || '';
                 const issuerName = formData.get('issuerName') || '請求書';
-                document.title = invoiceDate + '_' + issuerName + '_作業報告書付き';
+                document.title = dueDate + '_' + issuerName + '_作業報告書付き';
                 
                 // Hide form
                 document.getElementById('invoiceForm').style.display = 'none';
