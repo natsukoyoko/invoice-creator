@@ -776,22 +776,30 @@ app.get('/', (c) => {
                 <!-- Form Actions -->
                 <div class="no-print flex gap-4">
                     <button type="button" id="previewBtn" 
-                            class="w-1/2 px-6 py-3 rounded-md transition font-medium text-lg" 
+                            class="w-1/3 px-6 py-3 rounded-md transition font-medium text-lg" 
                             style="background-color: #CEC9E1; color: #1C008D;"
                             onmouseover="this.style.backgroundColor='#B8B0D5'" 
                             onmouseout="this.style.backgroundColor='#CEC9E1'">
-                        <i class="fas fa-eye mr-2"></i>Preview Invoice / プレビュー
+                        <i class="fas fa-eye mr-2"></i>Preview / プレビュー
+                    </button>
+                    <button type="button" id="workReportBtn" 
+                            class="w-1/3 px-6 py-3 rounded-md transition font-medium text-lg" 
+                            style="background-color: #A8D5BA; color: #0D4D2B;"
+                            onmouseover="this.style.backgroundColor='#92C5A5'" 
+                            onmouseout="this.style.backgroundColor='#A8D5BA'"
+                            title="請求書（1ページ目）+ 作業報告書（2ページ目以降）">
+                        <i class="fas fa-file-invoice mr-2"></i>With Report / 報告書付き
                     </button>
                     <button type="button" id="saveBtn"
-                            class="w-1/4 px-6 py-3 text-white rounded-md transition font-medium text-lg"
+                            class="w-1/6 px-4 py-3 text-white rounded-md transition font-medium text-lg"
                             style="background-color: #1C008D;"
                             onmouseover="this.style.backgroundColor='#150070'" 
                             onmouseout="this.style.backgroundColor='#1C008D'">
-                        <i class="fas fa-save mr-2"></i>Save / 保存
+                        <i class="fas fa-save mr-2"></i>Save
                     </button>
                     <button type="button" id="resetBtn"
-                            class="w-1/4 px-6 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 transition font-medium text-lg">
-                        <i class="fas fa-trash mr-2"></i>Reset / リセット
+                            class="w-1/6 px-4 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 transition font-medium text-lg">
+                        <i class="fas fa-trash mr-2"></i>Reset
                     </button>
                 </div>
             </form>
@@ -1590,6 +1598,390 @@ app.get('/', (c) => {
                 document.querySelector('.no-print.bg-white.rounded-lg.shadow-md.p-6.mb-6').style.display = 'block';
             }
             
+            // Generate Work Report Preview (Invoice Summary + Detailed Report)
+            function generateWorkReportPreview() {
+                const form = document.getElementById('invoiceForm');
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
+                
+                const formData = new FormData(form);
+                
+                // Get currency symbol or code
+                const currency = formData.get('currency') || 'JPY';
+                const currencySymbol = currency === 'JPY' ? '¥' : currency + ' ';
+                
+                // Collect all items data
+                const departments = formData.getAll('department[]');
+                const jobCategories = formData.getAll('jobCategory[]');
+                const taskDetails = formData.getAll('taskDetails[]');
+                const projectNames = formData.getAll('projectName[]');
+                const quantities = formData.getAll('quantity[]');
+                const unitPrices = formData.getAll('unitPrice[]');
+                const subtotals = formData.getAll('subtotal[]');
+                const itemRows = document.querySelectorAll('.item-row');
+                const residesInJapanRadio = document.querySelector('input[name="residesInJapan"]:checked');
+                const residesInJapan = residesInJapanRadio ? residesInJapanRadio.value === 'yes' : true;
+                
+                // Department name mapping
+                const deptMap = {
+                    'A-01': 'A-01 ソリューション',
+                    'A-02': 'A-02 店舗',
+                    'B-01': 'B-01 商談獲得',
+                    'C-01': 'C-01 PEPPER Likes',
+                    'C-02': 'C-02 dot B',
+                    'X-01': 'X-01 経理'
+                };
+                
+                // Build items array with all metadata
+                const items = [];
+                for (let i = 0; i < departments.length; i++) {
+                    const deptValue = departments[i];
+                    const deptDisplay = deptValue === 'other' ? formData.getAll('departmentOther[]')[i] : (deptMap[deptValue] || deptValue);
+                    
+                    // Check withholding status
+                    const row = itemRows[i];
+                    let itemHasWithholding = false;
+                    if (row) {
+                        const jobCategorySelect = row.querySelector('.item-job-category');
+                        const selectedOption = jobCategorySelect.options[jobCategorySelect.selectedIndex];
+                        if (selectedOption && selectedOption.dataset.withholding === 'true') {
+                            if (selectedOption.dataset.manual === 'true') {
+                                const withholdingCheckbox = row.querySelector('.job-category-withholding');
+                                if (withholdingCheckbox && withholdingCheckbox.checked) {
+                                    itemHasWithholding = true;
+                                }
+                            } else {
+                                itemHasWithholding = true;
+                            }
+                        }
+                    }
+                    
+                    // Check tax-exempt status
+                    const itemTaxExemptValues = formData.getAll('itemTaxExempt[]');
+                    const isItemTaxExempt = itemTaxExemptValues[i] === 'on';
+                    const isTaxExempt = formData.get('taxType') === 'tax-exempt' || isItemTaxExempt;
+                    
+                    items.push({
+                        index: i + 1,
+                        department: deptDisplay,
+                        jobCategory: jobCategories[i],
+                        taskDetails: taskDetails[i],
+                        projectName: projectNames[i],
+                        quantity: parseFloat(quantities[i]),
+                        unitPrice: parseFloat(unitPrices[i]),
+                        subtotal: parseFloat(subtotals[i]),
+                        hasWithholding: itemHasWithholding,
+                        isTaxExempt: isTaxExempt
+                    });
+                }
+                
+                // Group items by department + jobCategory
+                const grouped = {};
+                items.forEach(item => {
+                    const key = \`\${item.department}|\${item.jobCategory}\`;
+                    if (!grouped[key]) {
+                        grouped[key] = {
+                            department: item.department,
+                            jobCategory: item.jobCategory,
+                            totalQuantity: 0,
+                            totalAmount: 0,
+                            items: []
+                        };
+                    }
+                    grouped[key].totalQuantity += item.quantity;
+                    grouped[key].totalAmount += item.subtotal;
+                    grouped[key].items.push(item);
+                });
+                
+                // Generate summary table HTML for page 1
+                let summaryHTML = '';
+                Object.values(grouped).forEach(group => {
+                    summaryHTML += \`
+                        <tr class="border-b">
+                            <td class="border border-gray-800 py-2 px-2 text-xs">\${group.department}</td>
+                            <td class="border border-gray-800 py-2 px-2 text-xs">\${group.jobCategory}</td>
+                            <td class="border border-gray-800 py-2 px-2 text-center text-xs">\${group.totalQuantity}</td>
+                            <td class="border border-gray-800 py-2 px-2 text-right text-xs font-medium">\${currencySymbol}\${Math.round(group.totalAmount).toLocaleString()}</td>
+                        </tr>
+                    \`;
+                });
+                
+                // Generate detailed report HTML for page 2+
+                let detailHTML = '';
+                Object.values(grouped).forEach(group => {
+                    detailHTML += \`
+                        <div class="work-report-group mb-6">
+                            <h3 class="text-sm font-bold mb-2 pb-1 border-b-2 border-gray-800">
+                                ■ \${group.department} | \${group.jobCategory}
+                                <span class="float-right">小計: \${currencySymbol}\${Math.round(group.totalAmount).toLocaleString()}</span>
+                            </h3>
+                            <table class="w-full border-collapse">
+                                <thead>
+                                    <tr class="bg-gray-100">
+                                        <th class="border border-gray-800 py-1 px-1 text-left text-xs">No.</th>
+                                        <th class="border border-gray-800 py-1 px-1 text-left text-xs">Task / タスク</th>
+                                        <th class="border border-gray-800 py-1 px-1 text-left text-xs">Project / プロジェクト</th>
+                                        <th class="border border-gray-800 py-1 px-1 text-center text-xs">Qty / 数量</th>
+                                        <th class="border border-gray-800 py-1 px-1 text-right text-xs">Unit Price / 単価</th>
+                                        <th class="border border-gray-800 py-1 px-1 text-right text-xs">Subtotal / 小計</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    \`;
+                    
+                    group.items.forEach(item => {
+                        let indicators = '';
+                        if (item.hasWithholding) indicators += '<span style="color: #dc2626; font-weight: bold;">★</span> ';
+                        if (item.isTaxExempt) indicators += '<span style="color: #2563eb; font-weight: bold;">●</span> ';
+                        
+                        detailHTML += \`
+                            <tr>
+                                <td class="border border-gray-800 py-1 px-1 text-center text-xs">\${item.index}</td>
+                                <td class="border border-gray-800 py-1 px-1 text-xs">\${indicators}\${item.taskDetails}</td>
+                                <td class="border border-gray-800 py-1 px-1 text-xs">\${item.projectName}</td>
+                                <td class="border border-gray-800 py-1 px-1 text-center text-xs">\${item.quantity}</td>
+                                <td class="border border-gray-800 py-1 px-1 text-right text-xs">\${currencySymbol}\${item.unitPrice.toLocaleString()}</td>
+                                <td class="border border-gray-800 py-1 px-1 text-right text-xs font-medium">\${currencySymbol}\${Math.round(item.subtotal).toLocaleString()}</td>
+                            </tr>
+                        \`;
+                    });
+                    
+                    detailHTML += \`
+                                </tbody>
+                            </table>
+                        </div>
+                    \`;
+                });
+                
+                // Get totals from the form
+                const totalSubtotalEl = document.getElementById('totalSubtotal');
+                const totalTaxEl = document.getElementById('taxAmount');
+                const totalWithholdingEl = document.getElementById('withholdingAmount');
+                const totalAmountEl = document.getElementById('totalAmount');
+                
+                if (!totalSubtotalEl || !totalTaxEl || !totalWithholdingEl || !totalAmountEl) {
+                    alert('合計金額が計算されていません。先に項目を入力して計算してください。');
+                    return;
+                }
+                
+                const totalSubtotal = totalSubtotalEl.textContent;
+                const totalTax = totalTaxEl.textContent;
+                const totalWithholding = totalWithholdingEl.textContent;
+                const totalAmount = totalAmountEl.textContent;
+                
+                // Build payment info HTML (same as regular preview)
+                let paymentHTML = '';
+                const paymentMethod = formData.get('paymentMethod');
+                
+                if (paymentMethod === 'domestic') {
+                    paymentHTML = \`
+                        <div class="text-xs space-y-1">
+                            <div><strong>Bank Name / 銀行名:</strong> \${formData.get('domesticBankName')}</div>
+                            <div><strong>Branch Name / 支店名:</strong> \${formData.get('domesticBranchName')}</div>
+                            <div><strong>Branch Number / 支店番号:</strong> \${formData.get('domesticBranchNumber')}</div>
+                            <div><strong>Account Type / 口座種別:</strong> \${formData.get('domesticAccountType')}</div>
+                            <div><strong>Account Number / 口座番号:</strong> \${formData.get('domesticAccountNumber')}</div>
+                            <div><strong>Account Holder / 口座名義:</strong> \${formData.get('domesticAccountHolder')}</div>
+                        </div>
+                    \`;
+                } else if (paymentMethod === 'international') {
+                    paymentHTML = \`
+                        <div class="text-xs space-y-1">
+                            <div><strong>Recipient's Country / 受取人居住国:</strong> \${formData.get('intlCountry')}</div>
+                            <div><strong>Recipient's Email / 受取人メール:</strong> \${formData.get('intlEmail')}</div>
+                            <div><strong>Recipient's Address / 受取人住所:</strong> \${formData.get('intlAddress')}</div>
+                            <div><strong>Recipient's Phone / 受取人電話:</strong> \${formData.get('intlPhone')}</div>
+                            <div><strong>Date of Birth / 生年月日:</strong> \${formData.get('intlDOB')}</div>
+                            <div><strong>Bank Name / 銀行名:</strong> \${formData.get('intlBankName')}</div>
+                            \${formData.get('intlInstitutionCode') ? \`<div><strong>Institution Code / 金融機関コード:</strong> \${formData.get('intlInstitutionCode')}</div>\` : ''}
+                            <div><strong>Branch Name / 支店名:</strong> \${formData.get('intlBranchName')}</div>
+                            <div><strong>Branch Number / 支店番号:</strong> \${formData.get('intlBranchNumber')}</div>
+                            <div><strong>Bank Address / 銀行住所:</strong> \${formData.get('intlBankAddress')}</div>
+                            <div><strong>Account Number / 口座番号:</strong> \${formData.get('intlAccountNumber')}</div>
+                            <div><strong>SWIFT Code / SWIFTコード:</strong> \${formData.get('intlSwiftCode')}</div>
+                            <div><strong>Account Name / 口座名義:</strong> \${formData.get('intlAccountName')}</div>
+                        </div>
+                    \`;
+                } else if (paymentMethod === 'paypal') {
+                    paymentHTML = \`
+                        <div class="text-xs space-y-1">
+                            <div><strong>PayPal Email / PayPalメール:</strong> \${formData.get('paypalEmail')}</div>
+                        </div>
+                    \`;
+                }
+                
+                // Build issuer type display
+                const issuerTypeMap = {
+                    'corporation': 'Corporation / 法人',
+                    'sole': 'Sole Proprietor / 個人事業主',
+                    'freelance': 'Freelance / フリーランス'
+                };
+                const issuerType = issuerTypeMap[formData.get('issuerType')] || formData.get('issuerType');
+                
+                // Check if work was performed outside Japan
+                const workOutsideJapan = formData.get('workPerformedOutsideJapan') === 'on';
+                
+                // Build complete preview HTML
+                const previewHTML = \`
+                    <style>
+                        @page {
+                            size: A4;
+                            margin: 12mm 15mm;
+                        }
+                        .print-container {
+                            width: 100%;
+                            margin: 0;
+                            padding: 0;
+                            font-size: 11px;
+                        }
+                        .invoice-summary {
+                            page-break-after: always;
+                        }
+                        .work-report-group {
+                            page-break-inside: avoid;
+                        }
+                        @media print {
+                            body { 
+                                -webkit-print-color-adjust: exact;
+                                print-color-adjust: exact;
+                            }
+                            .no-print { display: none !important; }
+                            .print-only { display: block !important; }
+                        }
+                    </style>
+                    
+                    <div class="print-container">
+                        <!-- Page 1: Invoice Summary -->
+                        <div class="invoice-summary">
+                            <div class="text-center mb-6">
+                                <h1 class="text-2xl font-bold mb-2">請求書 / INVOICE</h1>
+                                <p class="text-xs text-gray-600">Invoice Date / 請求日: \${formData.get('invoiceDate')}</p>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4 mb-6">
+                                <div>
+                                    <h2 class="text-base font-bold mb-2 border-b-2 border-gray-800 pb-1">TO</h2>
+                                    <div class="text-xs space-y-1">
+                                        <div class="font-bold text-base">\${formData.get('clientName') || ''}</div>
+                                        <div>\${(formData.get('clientAddress') || '').replace(/\\n/g, '<br>')}</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-right">
+                                    <h2 class="text-base font-bold mb-2 border-b-2 border-gray-800 pb-1">FROM</h2>
+                                    <div class="text-xs space-y-1">
+                                        <div class="text-xs text-gray-600">\${issuerType}</div>
+                                        <div class="font-bold text-base">\${formData.get('issuerName') || ''}</div>
+                                        \${formData.get('corporateNumber') ? \`<div>法人番号: \${formData.get('corporateNumber')}</div>\` : ''}
+                                        \${formData.get('issuerTNumber') ? \`<div>適格事業者番号: \${formData.get('issuerTNumber')}</div>\` : ''}
+                                        \${formData.get('countryOfResidence') ? \`<div>Country: \${formData.get('countryOfResidence')}</div>\` : ''}
+                                        \${formData.get('postalCode') ? \`<div>〒\${formData.get('postalCode')}</div>\` : ''}
+                                        <div>\${(formData.get('issuerAddress') || '').replace(/\\n/g, '<br>')}</div>
+                                        <div>Email: \${formData.get('issuerEmail') || ''}</div>
+                                        \${formData.get('issuerPhone') ? \`<div>Phone: \${formData.get('issuerPhone')}</div>\` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-6">
+                                <h2 class="text-base font-bold mb-2">請求サマリー / Invoice Summary</h2>
+                                <table class="w-full border-collapse mb-4">
+                                    <thead>
+                                        <tr class="bg-gray-100">
+                                            <th class="border border-gray-800 py-2 px-2 text-left text-xs">Department / 部署</th>
+                                            <th class="border border-gray-800 py-2 px-2 text-left text-xs">Job Category / 業務カテゴリ</th>
+                                            <th class="border border-gray-800 py-2 px-2 text-center text-xs">Qty / 数量</th>
+                                            <th class="border border-gray-800 py-2 px-2 text-right text-xs">Amount / 金額</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        \${summaryHTML}
+                                    </tbody>
+                                </table>
+                                <p class="text-xs text-gray-600 italic">※詳細は次ページ「作業報告書」をご参照ください / See detailed breakdown on next page</p>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-6 mb-6">
+                                <div>
+                                    <h3 class="text-sm font-bold mb-2">Payment Information / 支払情報</h3>
+                                    \${paymentHTML}
+                                </div>
+                                
+                                <div>
+                                    <table class="w-full text-xs">
+                                        <tr class="border-b">
+                                            <td class="py-2 font-medium">Subtotal / 小計:</td>
+                                            <td class="py-2 text-right">\${totalSubtotal}</td>
+                                        </tr>
+                                        <tr class="border-b" id="taxRow" style="display: \${formData.get('taxType') === 'inclusive' ? 'table-row' : 'none'}">
+                                            <td class="py-2 font-medium">Tax (10%) / 消費税:</td>
+                                            <td class="py-2 text-right">\${totalTax}</td>
+                                        </tr>
+                                        <tr class="border-b" id="withholdingRow" style="display: flex">
+                                            <td class="py-2 font-medium">Withholding Tax / 源泉徴収税:</td>
+                                            <td class="py-2 text-right">\${totalWithholding}</td>
+                                        </tr>
+                                        <tr class="border-t-2 border-gray-800">
+                                            <td class="py-3 font-bold text-base">Total / 合計:</td>
+                                            <td class="py-3 text-right font-bold text-base">\${totalAmount}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            \${formData.get('notes') ? \`
+                                <div class="mb-4">
+                                    <h3 class="text-sm font-bold mb-2">Notes / 備考:</h3>
+                                    <div class="text-xs whitespace-pre-wrap">\${formData.get('notes')}</div>
+                                </div>
+                            \` : ''}
+                            
+                            \${workOutsideJapan ? '<div class="mt-4 text-xs" style="color: #6b7280;"><strong>Declaration:</strong> All contracted work was performed outside Japan / すべての業務(投稿など)は日本国外で行われました</div>' : ''}
+                        </div>
+                        
+                        <!-- Page 2+: Work Report -->
+                        <div class="work-report">
+                            <div class="text-center mb-6">
+                                <h1 class="text-xl font-bold mb-2">作業報告書 / Work Report</h1>
+                                <p class="text-xs text-gray-600">対象期間 / Period: \${formData.get('invoiceDate')}</p>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <h2 class="text-base font-bold mb-3">詳細明細 / Detailed Breakdown</h2>
+                                \${detailHTML}
+                            </div>
+                            
+                            <div class="mt-4 text-xs space-y-1">
+                                \${document.getElementById('withholdingRow').style.display === 'flex' ? '<div style="color: #dc2626;"><span style="font-weight: bold;">★</span> = Subject to withholding tax / 源泉徴収対象</div>' : ''}
+                                \${formData.get('taxType') === 'tax-exempt' || items.some(i => i.isTaxExempt) ? '<div style="color: #2563eb;"><span style="font-weight: bold;">●</span> = No Tax / 課税なし</div>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="no-print mt-6 text-center">
+                        <button onclick="window.print()" class="px-6 py-2 rounded-md transition font-medium" style="background-color: #1C008D; color: white;">
+                            <i class="fas fa-print mr-2"></i>Print Invoice / 印刷
+                        </button>
+                        <button onclick="closePreview()" class="ml-4 px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition">
+                            <i class="fas fa-times mr-2"></i>Close / 閉じる
+                        </button>
+                    </div>
+                \`;
+                
+                const preview = document.getElementById('invoicePreview');
+                preview.innerHTML = previewHTML;
+                preview.style.display = 'block';
+                
+                // Hide form
+                document.getElementById('invoiceForm').style.display = 'none';
+                document.querySelector('.no-print.bg-white.rounded-lg.shadow-md.p-6.mb-6').style.display = 'none';
+                
+                // Scroll to top
+                window.scrollTo(0, 0);
+            }
+            
             // Event listeners
             document.addEventListener('DOMContentLoaded', function() {
                 // Load saved data
@@ -1875,6 +2267,9 @@ app.get('/', (c) => {
                 
                 // Preview button
                 document.getElementById('previewBtn').addEventListener('click', generatePreview);
+                
+                // Work Report button
+                document.getElementById('workReportBtn').addEventListener('click', generateWorkReportPreview);
                 
                 // Save button
                 document.getElementById('saveBtn').addEventListener('click', saveFormData);
