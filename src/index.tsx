@@ -213,6 +213,18 @@ app.get('/', (c) => {
                         </p>
                     </div>
                     
+                    <div class="mb-4" id="tradeNameInput" style="display: none;">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Trade Name / 屋号
+                        </label>
+                        <input type="text" name="tradeName" id="tradeName"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="例：〇〇商店">
+                        <p class="text-xs text-gray-500 mt-1">
+                            <strong>Trade Name / 屋号:</strong> If you are a sole proprietor and have a business name (trade name), please enter it here. This is optional. / 個人事業主で屋号をお持ちの場合は、こちらに入力してください。任意項目です。
+                        </p>
+                    </div>
+                    
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-1">
                             JCT Registration Number / 適格事業者番号
@@ -943,6 +955,7 @@ app.get('/', (c) => {
                         if (data.issuerType) document.querySelector('[name="issuerType"]').value = data.issuerType;
                         if (data.issuerName) document.querySelector('[name="issuerName"]').value = data.issuerName;
                         if (data.corporateNumber) document.querySelector('[name="corporateNumber"]').value = data.corporateNumber;
+                        if (data.tradeName) document.querySelector('[name="tradeName"]').value = data.tradeName;
                         if (data.issuerTNumber) document.querySelector('[name="issuerTNumber"]').value = data.issuerTNumber;
                         if (data.issuerAddress) document.querySelector('[name="issuerAddress"]').value = data.issuerAddress;
                         if (data.issuerEmail) document.querySelector('[name="issuerEmail"]').value = data.issuerEmail;
@@ -983,6 +996,7 @@ app.get('/', (c) => {
                 data.issuerType = formData.get('issuerType');
                 data.issuerName = formData.get('issuerName');
                 data.corporateNumber = formData.get('corporateNumber');
+                data.tradeName = formData.get('tradeName');
                 data.issuerTNumber = formData.get('issuerTNumber');
                 data.postalCode = formData.get('postalCode');
                 data.issuerAddress = formData.get('issuerAddress');
@@ -1483,6 +1497,7 @@ app.get('/', (c) => {
                                 <div class="text-xs space-y-1">
                                     <div class="text-xs text-gray-600">\${issuerType}</div>
                                     <div class="font-bold text-base">\${formData.get('issuerName')}</div>
+                                    \${formData.get('tradeName') ? \`<div class="text-sm">(\${formData.get('tradeName')})</div>\` : ''}
                                     \${formData.get('corporateNumber') ? \`<div>法人番号: \${formData.get('corporateNumber')}</div>\` : ''}
                                     \${formData.get('issuerTNumber') ? \`<div>適格事業者番号: \${formData.get('issuerTNumber')}</div>\` : ''}
                                     \${formData.get('countryOfResidence') ? \`<div>Country: \${formData.get('countryOfResidence')}</div>\` : ''}
@@ -1874,6 +1889,7 @@ app.get('/', (c) => {
                                     <div class="text-xs space-y-1">
                                         <div class="text-xs text-gray-600">\${issuerType}</div>
                                         <div class="font-bold text-base">\${formData.get('issuerName') || ''}</div>
+                                        \${formData.get('tradeName') ? \`<div class="text-sm">(\${formData.get('tradeName')})</div>\` : ''}
                                         \${formData.get('corporateNumber') ? \`<div>法人番号: \${formData.get('corporateNumber')}</div>\` : ''}
                                         \${formData.get('issuerTNumber') ? \`<div>適格事業者番号: \${formData.get('issuerTNumber')}</div>\` : ''}
                                         \${formData.get('countryOfResidence') ? \`<div>Country: \${formData.get('countryOfResidence')}</div>\` : ''}
@@ -2050,6 +2066,17 @@ app.get('/', (c) => {
                         corporateNumberField.removeAttribute('required');
                         corporateNumberField.value = '';
                         corporateNumberLabel.classList.remove('required');
+                    }
+                    
+                    // Trade name visibility (show only for sole proprietor)
+                    const tradeNameDiv = document.getElementById('tradeNameInput');
+                    const tradeNameField = document.getElementById('tradeName');
+                    
+                    if (issuerType === 'sole') {
+                        tradeNameDiv.style.display = 'block';
+                    } else {
+                        tradeNameDiv.style.display = 'none';
+                        tradeNameField.value = '';
                     }
                 }
                 
