@@ -2380,9 +2380,12 @@ app.get('/', (c) => {
                     throw new Error('CSV のヘッダーが正しくありません。テンプレートをダウンロードして確認してください。');
                 }
                 
-                // Clear existing items
+                // Clear existing items, but preserve a template row for cloneNode
                 const container = document.getElementById('itemsContainer');
+                const existingRow = container.querySelector('.item-row');
+                const templateClone = existingRow ? existingRow.cloneNode(true) : null;
                 container.innerHTML = '';
+                if (templateClone) container.appendChild(templateClone);
                 
                 // Parse and add items
                 for (let i = 1; i < lines.length; i++) {
@@ -2473,6 +2476,12 @@ app.get('/', (c) => {
                         
                         calculateTotals();
                     }, 100 * i); // Delay to allow DOM updates
+                }
+                
+                // Remove the initial template row now that CSV rows have been added
+                const allRows = container.querySelectorAll('.item-row');
+                if (allRows.length > 1) {
+                    allRows[0].remove();
                 }
                 
                 alert((lines.length - 1) + ' 件の請求項目をインポートしました');
