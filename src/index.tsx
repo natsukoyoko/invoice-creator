@@ -1558,7 +1558,7 @@ app.get('/', (c) => {
                                 </div>
                                 \${document.getElementById('taxRow').style.display === 'flex' ? \`
                                 <div class="flex justify-between py-1">
-                                    <span>Tax (10%) / 消費税:</span>
+                                    <span>Tax (10% Incl.) / 消費税 (内税):</span>
                                     <span class="font-medium">\${document.getElementById('taxAmount').textContent}</span>
                                 </div>
                                 \` : ''}
