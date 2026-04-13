@@ -731,9 +731,10 @@ app.get('/', (c) => {
                             
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1 required">
-                                    Branch Number / 支店番号
+                                    Branch Number / 支店番号 (Routing / Sort / BSB etc.)
                                 </label>
-                                <input type="text" name="intlBranchNumber" pattern="[0-9]*"
+                                <input type="text" name="intlBranchNumber"
+                                       placeholder="ABA, Sort Code, BSB, etc."
                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                             </div>
                             
@@ -768,6 +769,14 @@ app.get('/', (c) => {
                                 </label>
                                 <input type="text" name="intlAccountName"
                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Additional Banking Info / その他銀行情報 (Optional / 任意)
+                                </label>
+                                <textarea name="intlAdditionalBankingInfo" rows="2"
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
                             </div>
                         </div>
                     </div>
@@ -1047,6 +1056,7 @@ app.get('/', (c) => {
                     data.intlAccountNumber = formData.get('intlAccountNumber');
                     data.intlSwiftCode = formData.get('intlSwiftCode');
                     data.intlAccountName = formData.get('intlAccountName');
+                    data.intlAdditionalBankingInfo = formData.get('intlAdditionalBankingInfo');
                 } else if (paymentMethod === 'paypal') {
                     data.paypalEmail = formData.get('paypalEmail');
                 }
@@ -1461,6 +1471,7 @@ app.get('/', (c) => {
                         <div><strong>Account Number / 口座番号:</strong> \${formData.get('intlAccountNumber')}</div>
                         <div><strong>SWIFT Code:</strong> \${formData.get('intlSwiftCode')}</div>
                         <div><strong>Account Name / 口座名義:</strong> \${formData.get('intlAccountName')}</div>
+                        \${formData.get('intlAdditionalBankingInfo') ? \`<div><strong>Additional Info / その他銀行情報:</strong> \${formData.get('intlAdditionalBankingInfo')}</div>\` : ''}
                     \`;
                 } else if (paymentMethod === 'paypal') {
                     paymentHTML = \`
@@ -1842,6 +1853,7 @@ app.get('/', (c) => {
                             <div><strong>Account Number / 口座番号:</strong> \${formData.get('intlAccountNumber')}</div>
                             <div><strong>SWIFT Code / SWIFTコード:</strong> \${formData.get('intlSwiftCode')}</div>
                             <div><strong>Account Name / 口座名義:</strong> \${formData.get('intlAccountName')}</div>
+                            \${formData.get('intlAdditionalBankingInfo') ? \`<div><strong>Additional Info / その他銀行情報:</strong> \${formData.get('intlAdditionalBankingInfo')}</div>\` : ''}
                         </div>
                     \`;
                 } else if (paymentMethod === 'paypal') {
