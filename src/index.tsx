@@ -555,7 +555,7 @@ app.get('/', (c) => {
                                 <span id="totalSubtotal" class="font-bold">¥0</span>
                             </div>
                             <div class="flex justify-between text-lg" id="taxRow">
-                                <span class="font-medium">Tax (10%) / 消費税:</span>
+                                <span class="font-medium">Tax (10% Incl.) / 消費税 (内税):</span>
                                 <span id="taxAmount" class="font-bold">¥0</span>
                             </div>
                             <div class="flex justify-between text-lg text-gray-600" id="withholdingBaseRow" style="display: none;">
@@ -1956,8 +1956,8 @@ app.get('/', (c) => {
                                             <td class="py-2 font-medium">Subtotal / 小計:</td>
                                             <td class="py-2 text-right">\${totalSubtotal}</td>
                                         </tr>
-                                        <tr class="border-b" id="taxRow" style="display: \${formData.get('taxType') === 'inclusive' ? 'table-row' : 'none'}">
-                                            <td class="py-2 font-medium">Tax (10%) / 消費税:</td>
+                                        <tr class="border-b" id="taxRow" style="display: \${formData.get('taxType') !== 'tax-exempt' ? 'table-row' : 'none'}">
+                                            <td class="py-2 font-medium">Tax (10% Incl.) / 消費税 (内税):</td>
                                             <td class="py-2 text-right">\${totalTax}</td>
                                         </tr>
                                         <tr class="border-b" id="withholdingRow" style="display: flex">
