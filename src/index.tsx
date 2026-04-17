@@ -1489,7 +1489,7 @@ app.get('/', (c) => {
                 
                 // Get tax type for display
                 const taxType = formData.get('taxType');
-                const taxTypeLabel = taxType === 'inclusive' ? 'Tax Inclusive / 税込' : 'Tax Exclusive / 税抜';
+                const taxTypeLabel = taxType === 'exclusive' ? '(Tax Exclusive / 税抜)' : '';
                 
                 // Get issuer type label
                 const issuerTypeMap = {
@@ -1548,7 +1548,7 @@ app.get('/', (c) => {
                                         <th class="border border-gray-800 py-1 px-1 text-left text-xs">Project<br>プロジェクト</th>
                                         <th class="border border-gray-800 py-1 px-1 text-center text-xs">Qty<br>数量</th>
                                         <th class="border border-gray-800 py-1 px-1 text-right text-xs">Unit Price<br>単価</th>
-                                        <th class="border border-gray-800 py-1 px-1 text-right text-xs">Subtotal<br>小計<br><span style="font-size: 9px; color: #6b7280;">(\${taxTypeLabel})</span></th>
+                                        <th class="border border-gray-800 py-1 px-1 text-right text-xs">Subtotal<br>小計\${taxTypeLabel ? '<br><span style="font-size: 9px; color: #6b7280;">' + taxTypeLabel + '</span>' : ''}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
