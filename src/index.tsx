@@ -1408,8 +1408,11 @@ app.get('/', (c) => {
                     }
                     
                     // Check if this item is individually tax-exempt
-                    const itemTaxExemptValues = formData.getAll('itemTaxExempt[]');
-                    const isItemTaxExempt = itemTaxExemptValues[i] === 'on';
+                    // NOTE: Use DOM directly (not formData.getAll) because unchecked checkboxes
+                    // are NOT included in FormData, causing index misalignment with multiple rows.
+                    const isItemTaxExempt = row
+                        ? (row.querySelector('.item-tax-exempt')?.checked === true)
+                        : false;
                     
                     // Track if any item has individual tax-exempt
                     if (isItemTaxExempt) {
@@ -1710,8 +1713,11 @@ app.get('/', (c) => {
                     }
                     
                     // Check tax-exempt status
-                    const itemTaxExemptValues = formData.getAll('itemTaxExempt[]');
-                    const isItemTaxExempt = itemTaxExemptValues[i] === 'on';
+                    // NOTE: Use DOM directly (not formData.getAll) because unchecked checkboxes
+                    // are NOT included in FormData, causing index misalignment with multiple rows.
+                    const isItemTaxExempt = row
+                        ? (row.querySelector('.item-tax-exempt')?.checked === true)
+                        : false;
                     const isTaxExempt = formData.get('taxType') === 'tax-exempt' || isItemTaxExempt;
                     
                     items.push({
