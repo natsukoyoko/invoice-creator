@@ -1251,7 +1251,7 @@ app.get('/', (c) => {
                             }
                         });
                         
-                        withholdingAmount = withholdingBaseAmount * withholdingRate;
+                        withholdingAmount = Math.round(withholdingBaseAmount * withholdingRate);
                         total = subtotal - withholdingAmount;
                     } else {
                         total = subtotal;
@@ -1263,7 +1263,7 @@ app.get('/', (c) => {
                     if (hasWithholding) {
                         // Calculate withholding on subtotal directly (no tax to exclude)
                         withholdingBaseAmount = withholdingSubtotal;
-                        withholdingAmount = withholdingSubtotal * withholdingRate;
+                        withholdingAmount = Math.round(withholdingSubtotal * withholdingRate);
                         total = subtotal - withholdingAmount;
                     } else {
                         total = subtotal;
@@ -1274,7 +1274,7 @@ app.get('/', (c) => {
                 document.getElementById('totalSubtotal').textContent = currencySymbol + Math.round(subtotal).toLocaleString();
                 document.getElementById('taxAmount').textContent = currencySymbol + Math.round(taxAmount).toLocaleString();
                 document.getElementById('withholdingBaseAmount').textContent = currencySymbol + Math.round(withholdingBaseAmount).toLocaleString();
-                document.getElementById('withholdingAmount').textContent = '-' + currencySymbol + Math.round(withholdingAmount).toLocaleString();
+                document.getElementById('withholdingAmount').textContent = '-' + currencySymbol + withholdingAmount.toLocaleString();
                 document.getElementById('totalAmount').textContent = currencySymbol + Math.round(total).toLocaleString();
                 
                 // Update withholding label with rate
