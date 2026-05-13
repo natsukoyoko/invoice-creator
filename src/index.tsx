@@ -1816,6 +1816,7 @@ app.get('/', (c) => {
                 const totalSubtotalEl = document.getElementById('totalSubtotal');
                 const totalTaxEl = document.getElementById('taxAmount');
                 const totalWithholdingEl = document.getElementById('withholdingAmount');
+                const totalWithholdingBaseEl = document.getElementById('withholdingBaseAmount');
                 const totalAmountEl = document.getElementById('totalAmount');
                 
                 if (!totalSubtotalEl || !totalTaxEl || !totalWithholdingEl || !totalAmountEl) {
@@ -1826,7 +1827,12 @@ app.get('/', (c) => {
                 const totalSubtotal = totalSubtotalEl.textContent;
                 const totalTax = totalTaxEl.textContent;
                 const totalWithholding = totalWithholdingEl.textContent;
+                const totalWithholdingBase = totalWithholdingBaseEl ? totalWithholdingBaseEl.textContent : '';
                 const totalAmount = totalAmountEl.textContent;
+                const hasWithholdingDisplay = document.getElementById('withholdingRow').style.display === 'flex';
+                const hasTaxDisplay = document.getElementById('taxRow').style.display !== 'none';
+                const hasWithholdingBaseDisplay = document.getElementById('withholdingBaseRow').style.display === 'flex';
+                const hasIndividualTaxExemptDisplay = items.some(i => i.isTaxExempt);
                 
                 // Build payment info HTML (same as regular preview)
                 let paymentHTML = '';
@@ -1946,7 +1952,7 @@ app.get('/', (c) => {
                             
                             <div class="mb-6">
                                 <h2 class="text-base font-bold mb-2">請求サマリー / Invoice Summary</h2>
-                                <table class="w-full border-collapse mb-4">
+                                <table class="w-full border-collapse mb-2">
                                     <thead>
                                         <tr class="bg-gray-100">
                                             <th class="border border-gray-800 py-2 px-2 text-left text-xs">Department / 部署</th>
@@ -1959,6 +1965,10 @@ app.get('/', (c) => {
                                         \${summaryHTML}
                                     </tbody>
                                 </table>
+                                <div class="mb-2 text-xs space-y-1">
+                                    \${hasWithholdingDisplay ? '<div style="color: #dc2626;"><span style="font-weight: bold;">★</span> = Subject to withholding tax / 源泉徴収対象</div>' : ''}
+                                    \${formData.get('taxType') === 'tax-exempt' || hasIndividualTaxExemptDisplay ? '<div style="color: #2563eb;"><span style="font-weight: bold;">●</span> = No Tax / 課税なし</div>' : ''}
+                                </div>
                                 <p class="text-xs text-gray-600 italic">※詳細は次ページ「作業報告書」をご参照ください / See detailed breakdown on next page</p>
                             </div>
                             
@@ -1974,14 +1984,18 @@ app.get('/', (c) => {
                                             <td class="py-2 font-medium">Subtotal / 小計:</td>
                                             <td class="py-2 text-right">\${totalSubtotal}</td>
                                         </tr>
-                                        <tr class="border-b" id="taxRow" style="display: \${formData.get('taxType') !== 'tax-exempt' ? 'table-row' : 'none'}">
+                                        \${hasTaxDisplay ? \`<tr class="border-b">
                                             <td class="py-2 font-medium">Tax (10% Incl.) / 消費税 (内税):</td>
                                             <td class="py-2 text-right">\${totalTax}</td>
-                                        </tr>
-                                        <tr class="border-b" id="withholdingRow" style="display: flex">
-                                            <td class="py-2 font-medium">Withholding Tax / 源泉徴収税:</td>
+                                        </tr>\` : ''}
+                                        \${hasWithholdingBaseDisplay ? \`<tr class="border-b" style="color: #6b7280;">
+                                            <td class="py-2 font-medium">Withholding Base (Tax-Excl.) / 源泉対象額（税抜）:</td>
+                                            <td class="py-2 text-right">\${totalWithholdingBase}</td>
+                                        </tr>\` : ''}
+                                        \${hasWithholdingDisplay ? \`<tr class="border-b" style="color: #dc2626;">
+                                            <td class="py-2 font-medium">\${document.getElementById('withholdingLabel').textContent}</td>
                                             <td class="py-2 text-right">\${totalWithholding}</td>
-                                        </tr>
+                                        </tr>\` : ''}
                                         <tr class="border-t-2 border-gray-800">
                                             <td class="py-3 font-bold text-base">Total / 合計:</td>
                                             <td class="py-3 text-right font-bold text-base">\${totalAmount}</td>
