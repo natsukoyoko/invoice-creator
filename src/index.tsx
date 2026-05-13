@@ -1997,8 +1997,8 @@ app.get('/', (c) => {
                                             <td class="py-2 text-right">\${totalWithholding}</td>
                                         </tr>\` : ''}
                                         <tr class="border-t-2 border-gray-800">
-                                            <td class="py-3 font-bold text-base">Total / 合計:</td>
-                                            <td class="py-3 text-right font-bold text-base">\${totalAmount}</td>
+                                            <td class="py-3 font-bold" style="font-size: 15px;">Total / 合計:</td>
+                                            <td class="py-3 text-right font-bold" style="font-size: 18px; color: #2563eb;">\${totalAmount}</td>
                                         </tr>
                                     </table>
                                 </div>
