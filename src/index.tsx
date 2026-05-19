@@ -748,10 +748,11 @@ app.get('/', (c) => {
                             
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1 required">
-                                    Account Number / 口座番号
+                                    Account Number・IBAN / 口座番号
                                 </label>
                                 <input type="text" name="intlAccountNumber"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       placeholder="例: GB29NWBK60161331926819">
                             </div>
                             
                             <div>
@@ -763,14 +764,47 @@ app.get('/', (c) => {
                                        placeholder="ABCDUS33">
                             </div>
                             
-                            <div class="md:col-span-2">
+                            <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1 required">
-                                    Account Name / 口座名義
+                                    Account Holder / 口座名義
                                 </label>
                                 <input type="text" name="intlAccountName"
                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                             </div>
-                            
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1 required">
+                                    Account Type / 口座種別
+                                </label>
+                                <select name="intlAccountType" required
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option value="">選択してください</option>
+                                    <option value="Checking">Checking（当座預金）</option>
+                                    <option value="Savings">Savings（普通 / 貯蓄預金）</option>
+                                    <option value="Corporate">Corporate（法人口座）</option>
+                                </select>
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Local Routing Code <span class="text-gray-400 font-normal">(Optional / 任意)</span>
+                                </label>
+                                <div class="flex gap-2">
+                                    <select id="intlRoutingType" name="intlRoutingType"
+                                            class="w-1/2 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="">選択してください</option>
+                                        <option value="Routing Number (ABA)">Routing Number (ABA) - America</option>
+                                        <option value="Sort Code">Sort Code - United Kingdom</option>
+                                        <option value="Transit Number">Transit Number - Canada</option>
+                                        <option value="BSB Code">BSB Code - Australia</option>
+                                    </select>
+                                    <input type="text" id="intlRoutingCode" name="intlRoutingCode"
+                                           placeholder="コードを入力"
+                                           class="w-1/2 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                </div>
+                                <p id="intlRoutingHint" class="text-xs text-gray-400 mt-1"></p>
+                            </div>
+
                             <div class="md:col-span-2">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
                                     Additional Banking Info / その他銀行情報 (Optional / 任意)
@@ -1051,11 +1085,13 @@ app.get('/', (c) => {
                     data.intlBankName = formData.get('intlBankName');
                     data.intlInstitutionCode = formData.get('intlInstitutionCode');
                     data.intlBranchName = formData.get('intlBranchName');
-                    data.intlBranchNumber = formData.get('intlBranchNumber');
                     data.intlBankAddress = formData.get('intlBankAddress');
                     data.intlAccountNumber = formData.get('intlAccountNumber');
                     data.intlSwiftCode = formData.get('intlSwiftCode');
                     data.intlAccountName = formData.get('intlAccountName');
+                    data.intlAccountType = formData.get('intlAccountType');
+                    data.intlRoutingType = formData.get('intlRoutingType');
+                    data.intlRoutingCode = formData.get('intlRoutingCode');
                     data.intlAdditionalBankingInfo = formData.get('intlAdditionalBankingInfo');
                 } else if (paymentMethod === 'paypal') {
                     data.paypalEmail = formData.get('paypalEmail');
@@ -1458,6 +1494,8 @@ app.get('/', (c) => {
                         <div><strong>Account Holder / 受取人名:</strong> \${formData.get('domesticAccountHolder')}</div>
                     \`;
                 } else if (paymentMethod === 'international') {
+                    const intlRoutingType = formData.get('intlRoutingType');
+                    const intlRoutingCode = formData.get('intlRoutingCode');
                     paymentHTML = \`
                         <h4 class="font-semibold mt-1 mb-1" style="font-size: 11px;">Recipient Information / 受取人情報</h4>
                         <div><strong>Country / 居住国:</strong> \${formData.get('intlCountry')}</div>
@@ -1469,11 +1507,12 @@ app.get('/', (c) => {
                         <div><strong>Bank Name / 銀行名:</strong> \${formData.get('intlBankName')}</div>
                         \${formData.get('intlInstitutionCode') ? \`<div><strong>Institution Code / 金融機関コード:</strong> \${formData.get('intlInstitutionCode')}</div>\` : ''}
                         <div><strong>Branch Name / 支店名:</strong> \${formData.get('intlBranchName')}</div>
-                        <div><strong>Branch Number / 支店番号:</strong> \${formData.get('intlBranchNumber')}</div>
                         <div><strong>Bank Address / 銀行住所:</strong> \${formData.get('intlBankAddress')}</div>
-                        <div><strong>Account Number / 口座番号:</strong> \${formData.get('intlAccountNumber')}</div>
+                        <div><strong>Account Number・IBAN / 口座番号:</strong> \${formData.get('intlAccountNumber')}</div>
                         <div><strong>SWIFT Code:</strong> \${formData.get('intlSwiftCode')}</div>
-                        <div><strong>Account Name / 口座名義:</strong> \${formData.get('intlAccountName')}</div>
+                        <div><strong>Account Holder / 口座名義:</strong> \${formData.get('intlAccountName')}</div>
+                        <div><strong>Account Type / 口座種別:</strong> \${formData.get('intlAccountType')}</div>
+                        \${intlRoutingType && intlRoutingCode ? \`<div><strong>\${intlRoutingType}:</strong> \${intlRoutingCode}</div>\` : ''}
                         \${formData.get('intlAdditionalBankingInfo') ? \`<div><strong>Additional Info / その他銀行情報:</strong> \${formData.get('intlAdditionalBankingInfo')}</div>\` : ''}
                     \`;
                 } else if (paymentMethod === 'paypal') {
@@ -1850,6 +1889,8 @@ app.get('/', (c) => {
                         </div>
                     \`;
                 } else if (paymentMethod === 'international') {
+                    const intlRoutingType = formData.get('intlRoutingType');
+                    const intlRoutingCode = formData.get('intlRoutingCode');
                     paymentHTML = \`
                         <div class="text-xs space-y-1">
                             <div><strong>Recipient's Country / 受取人居住国:</strong> \${formData.get('intlCountry')}</div>
@@ -1860,11 +1901,12 @@ app.get('/', (c) => {
                             <div><strong>Bank Name / 銀行名:</strong> \${formData.get('intlBankName')}</div>
                             \${formData.get('intlInstitutionCode') ? \`<div><strong>Institution Code / 金融機関コード:</strong> \${formData.get('intlInstitutionCode')}</div>\` : ''}
                             <div><strong>Branch Name / 支店名:</strong> \${formData.get('intlBranchName')}</div>
-                            <div><strong>Branch Number / 支店番号:</strong> \${formData.get('intlBranchNumber')}</div>
                             <div><strong>Bank Address / 銀行住所:</strong> \${formData.get('intlBankAddress')}</div>
-                            <div><strong>Account Number / 口座番号:</strong> \${formData.get('intlAccountNumber')}</div>
+                            <div><strong>Account Number・IBAN / 口座番号:</strong> \${formData.get('intlAccountNumber')}</div>
                             <div><strong>SWIFT Code / SWIFTコード:</strong> \${formData.get('intlSwiftCode')}</div>
-                            <div><strong>Account Name / 口座名義:</strong> \${formData.get('intlAccountName')}</div>
+                            <div><strong>Account Holder / 口座名義:</strong> \${formData.get('intlAccountName')}</div>
+                            <div><strong>Account Type / 口座種別:</strong> \${formData.get('intlAccountType')}</div>
+                            \${intlRoutingType && intlRoutingCode ? \`<div><strong>\${intlRoutingType}:</strong> \${intlRoutingCode}</div>\` : ''}
                             \${formData.get('intlAdditionalBankingInfo') ? \`<div><strong>Additional Info / その他銀行情報:</strong> \${formData.get('intlAdditionalBankingInfo')}</div>\` : ''}
                         </div>
                     \`;
@@ -2393,6 +2435,79 @@ app.get('/', (c) => {
                 
                 // CSV Template download button
                 document.getElementById('downloadTemplateCsvBtn').addEventListener('click', downloadCsvTemplate);
+
+                // ── 国内送金 口座番号：数字のみ許可・7桁自動ゼロ埋め ──
+                const domesticAccountNumberInput = document.querySelector('[name="domesticAccountNumber"]');
+                if (domesticAccountNumberInput) {
+                    // maxlength を 7 に設定
+                    domesticAccountNumberInput.setAttribute('maxlength', '7');
+                    // 入力時：数字以外をリアルタイム除去
+                    domesticAccountNumberInput.addEventListener('input', function() {
+                        this.value = this.value.replace(/[^0-9]/g, '').slice(0, 7);
+                    });
+                    // blur時：7桁未満なら頭にゼロ埋め
+                    domesticAccountNumberInput.addEventListener('blur', function() {
+                        if (this.value.length > 0 && this.value.length < 7) {
+                            this.value = this.value.padStart(7, '0');
+                        }
+                    });
+                }
+
+                // ── 海外送金 Local Routing Code：種別選択に応じたバリデーション ──
+                const routingTypeSelect = document.getElementById('intlRoutingType');
+                const routingCodeInput = document.getElementById('intlRoutingCode');
+                const routingHint = document.getElementById('intlRoutingHint');
+
+                if (routingTypeSelect && routingCodeInput) {
+                    const routingRules = {
+                        'Routing Number (ABA)': { digits: [9],      hint: '9桁の半角数字', maxlen: 9 },
+                        'Sort Code':            { digits: [6],      hint: '6桁の半角数字（ハイフン自動除去）', maxlen: 6 },
+                        'Transit Number':       { digits: [5, 8],   hint: '5桁または8桁の半角数字（ハイフン自動除去）', maxlen: 8 },
+                        'BSB Code':             { digits: [6],      hint: '6桁の半角数字', maxlen: 6 },
+                    };
+
+                    routingTypeSelect.addEventListener('change', function() {
+                        const rule = routingRules[this.value];
+                        routingCodeInput.value = '';
+                        if (rule) {
+                            routingCodeInput.setAttribute('maxlength', rule.maxlen);
+                            routingHint.textContent = '例: ' + rule.hint;
+                        } else {
+                            routingCodeInput.removeAttribute('maxlength');
+                            routingHint.textContent = '';
+                        }
+                    });
+
+                    // 入力時：ハイフン除去 + 数字のみ + maxlength制限
+                    routingCodeInput.addEventListener('input', function() {
+                        const rule = routingRules[routingTypeSelect.value];
+                        const maxlen = rule ? rule.maxlen : 20;
+                        this.value = this.value.replace(/[^0-9]/g, '').slice(0, maxlen);
+                    });
+
+                    // blur時：桁数チェック
+                    routingCodeInput.addEventListener('blur', function() {
+                        const rule = routingRules[routingTypeSelect.value];
+                        if (!rule || !this.value) return;
+                        if (!rule.digits.includes(this.value.length)) {
+                            this.style.borderColor = '#dc2626';
+                            routingHint.textContent = '⚠ ' + rule.hint + ' を入力してください';
+                            routingHint.style.color = '#dc2626';
+                        } else {
+                            this.style.borderColor = '';
+                            routingHint.textContent = '';
+                            routingHint.style.color = '';
+                        }
+                    });
+
+                    // focus時：エラー表示リセット
+                    routingCodeInput.addEventListener('focus', function() {
+                        this.style.borderColor = '';
+                        const rule = routingRules[routingTypeSelect.value];
+                        routingHint.textContent = rule ? '例: ' + rule.hint : '';
+                        routingHint.style.color = '#9ca3af';
+                    });
+                }
             });
             
             // CSV Import function
