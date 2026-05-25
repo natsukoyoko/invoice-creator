@@ -1963,7 +1963,7 @@ app.get('/', (c) => {
                         <div class="invoice-summary">
                             <div class="text-center mb-6">
                                 <h1 class="text-2xl font-bold mb-2">請求書 / INVOICE</h1>
-                                <p class="text-xs text-gray-600">Invoice Date / 請求日: \${formData.get('invoiceDate')}</p>
+                                <p class="text-xs text-gray-600">Invoice Date / 請求日: \${formData.get('invoiceDate')}&nbsp;&nbsp;|&nbsp;&nbsp;Due Date / 支払期限: \${formData.get('dueDate')}</p>
                             </div>
                             
                             <div class="grid grid-cols-2 gap-4 mb-6">
