@@ -958,8 +958,8 @@ app.get('/', (c) => {
                 { name: 'コンテンツ企画・制作支援 / Content Planning & Production Support', withholding: true, group: 'A' },
                 { name: 'コピー・ライティング業務 / Copywriting', withholding: true, group: 'A' },
                 { name: '動画・画像編集 / Video & Image Editing', withholding: true, group: 'A' },
-                { name: '翻訳業務 / Translation', withholding: true, group: 'A' },
                 // グループB - 源泉徴収対象外
+                { name: '翻訳業務 / Translation', withholding: false, group: 'B' },
                 { name: 'SNS投稿業務 (インフルエンサー / KOL) / SNS Posting (Influencer / KOL)', withholding: false, group: 'B' },
                 { name: 'インフルエンサー管理・調整業務 / Influencer Management', withholding: false, group: 'B' },
                 { name: '広告運用 / Ad Operations', withholding: false, group: 'B' },
