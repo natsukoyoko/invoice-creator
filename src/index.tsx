@@ -2212,10 +2212,8 @@ app.get('/', (c) => {
                         const checkbox = document.getElementById('workPerformedOutsideJapan');
                         if (residesInJapan) {
                             checkbox.checked = false;
-                            checkbox.removeAttribute('required');
-                        } else {
-                            checkbox.setAttribute('required', 'required');
                         }
+                        // Declaration checkbox is optional - do not set required
                         
                         // Update postal code requirement
                         const postalCodeInput = document.getElementById('postalCode');
