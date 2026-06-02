@@ -1031,13 +1031,11 @@ app.get('/', (c) => {
                         // Populate residence
                         if (data.residesInJapan) {
                             const radioButton = document.querySelector(\`input[name="residesInJapan"][value="\${data.residesInJapan}"]\`);
-                            if (radioButton) radioButton.checked = true;
-                            // Sync nonJapanWorkNotice visibility with restored radio value
-                            const restoredInJapan = data.residesInJapan === 'yes';
-                            const noticeEl = document.getElementById('nonJapanWorkNotice');
-                            const checkboxEl = document.getElementById('workPerformedOutsideJapan');
-                            if (noticeEl) noticeEl.style.display = restoredInJapan ? 'none' : 'block';
-                            if (checkboxEl && restoredInJapan) checkboxEl.checked = false;
+                            if (radioButton) {
+                                radioButton.checked = true;
+                                // Explicitly fire change event to sync all dependent UI fields
+                                radioButton.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
                         }
                         
                         // Populate payment fields based on method
@@ -2117,9 +2115,6 @@ app.get('/', (c) => {
             
             // Event listeners
             document.addEventListener('DOMContentLoaded', function() {
-                // Load saved data
-                loadSavedData();
-                
                 // Set default date to today
                 const today = new Date().toISOString().split('T')[0];
                 document.querySelector('[name="invoiceDate"]').value = today;
@@ -2267,6 +2262,10 @@ app.get('/', (c) => {
                     });
                 });
                 
+                // Load saved data AFTER all change-event handlers are registered
+                // so that dispatchEvent('change') on radio buttons triggers full UI sync
+                loadSavedData();
+
                 // Function to update tax type control based on residence
                 function updateTaxTypeControl(residesInJapan) {
                     const taxTypeSelect = document.getElementById('taxType');
