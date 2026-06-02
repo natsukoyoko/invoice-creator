@@ -1032,6 +1032,12 @@ app.get('/', (c) => {
                         if (data.residesInJapan) {
                             const radioButton = document.querySelector(\`input[name="residesInJapan"][value="\${data.residesInJapan}"]\`);
                             if (radioButton) radioButton.checked = true;
+                            // Sync nonJapanWorkNotice visibility with restored radio value
+                            const restoredInJapan = data.residesInJapan === 'yes';
+                            const noticeEl = document.getElementById('nonJapanWorkNotice');
+                            const checkboxEl = document.getElementById('workPerformedOutsideJapan');
+                            if (noticeEl) noticeEl.style.display = restoredInJapan ? 'none' : 'block';
+                            if (checkboxEl && restoredInJapan) checkboxEl.checked = false;
                         }
                         
                         // Populate payment fields based on method
@@ -2143,6 +2149,16 @@ app.get('/', (c) => {
                 } else {
                     countryInputDiv.style.display = 'block';
                     countryInputField.setAttribute('required', 'required');
+                }
+
+                // Initialize nonJapanWorkNotice visibility based on residence
+                const nonJapanWorkNotice = document.getElementById('nonJapanWorkNotice');
+                const workPerformedCheckbox = document.getElementById('workPerformedOutsideJapan');
+                if (initialResidenceInJapan) {
+                    nonJapanWorkNotice.style.display = 'none';
+                    workPerformedCheckbox.checked = false;
+                } else {
+                    nonJapanWorkNotice.style.display = 'block';
                 }
                 
                 // Update withholding notice visibility based on issuer type
