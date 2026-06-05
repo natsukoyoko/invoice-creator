@@ -1794,21 +1794,28 @@ app.get('/', (c) => {
                             jobCategory: item.jobCategory,
                             totalQuantity: 0,
                             totalAmount: 0,
+                            hasWithholding: false,
+                            isTaxExempt: false,
                             items: []
                         };
                     }
                     grouped[key].totalQuantity += item.quantity;
                     grouped[key].totalAmount += item.subtotal;
+                    if (item.hasWithholding) grouped[key].hasWithholding = true;
+                    if (item.isTaxExempt) grouped[key].isTaxExempt = true;
                     grouped[key].items.push(item);
                 });
                 
                 // Generate summary table HTML for page 1
                 let summaryHTML = '';
                 Object.values(grouped).forEach(group => {
+                    let summaryIndicators = '';
+                    if (group.hasWithholding) summaryIndicators += '<span style="color: #dc2626; font-weight: bold;">★</span> ';
+                    if (group.isTaxExempt) summaryIndicators += '<span style="color: #2563eb; font-weight: bold;">●</span> ';
                     summaryHTML += \`
                         <tr class="border-b">
                             <td class="border border-gray-800 py-2 px-2 text-xs">\${group.department}</td>
-                            <td class="border border-gray-800 py-2 px-2 text-xs">\${group.jobCategory}</td>
+                            <td class="border border-gray-800 py-2 px-2 text-xs">\${summaryIndicators}\${group.jobCategory}</td>
                             <td class="border border-gray-800 py-2 px-2 text-center text-xs">\${group.totalQuantity}</td>
                             <td class="border border-gray-800 py-2 px-2 text-right text-xs font-medium">\${currencySymbol}\${Math.round(group.totalAmount).toLocaleString()}</td>
                         </tr>
