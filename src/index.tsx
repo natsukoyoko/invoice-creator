@@ -440,6 +440,45 @@ app.get('/', (c) => {
                         </button>
                     </div>
                     
+                    <!-- Delivery Date / 納品日 共通設定 -->
+                    <div id="deliveryDateSection" class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-sm font-bold text-gray-800">
+                                <i class="fas fa-calendar-check mr-1 text-blue-600"></i>
+                                Delivery Date / 納品日 <span class="text-red-500">*</span>
+                            </h3>
+                            <label class="flex items-center text-xs text-gray-600 cursor-pointer">
+                                <input type="checkbox" id="useIndividualDelivery" class="w-4 h-4 mr-2 text-blue-600 border-gray-300 rounded">
+                                項目ごとに個別設定 / Set per item
+                            </label>
+                        </div>
+
+                        <!-- 共通日付入力（デフォルト表示） -->
+                        <div id="commonDeliveryArea">
+                            <div class="flex items-center gap-3 mb-2">
+                                <label class="text-xs font-medium text-gray-700 w-20 shrink-0">種別 / Type:</label>
+                                <select id="commonDeliveryType" class="px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500">
+                                    <option value="date">日付 / Date</option>
+                                    <option value="period">期間 / Period</option>
+                                </select>
+                            </div>
+                            <div id="commonDeliveryDateFields" class="flex items-center gap-2">
+                                <label class="text-xs font-medium text-gray-700 w-20 shrink-0">納品日:</label>
+                                <input type="date" id="commonDeliveryDate"
+                                       class="px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div id="commonDeliveryPeriodFields" class="flex items-center gap-2" style="display:none;">
+                                <label class="text-xs font-medium text-gray-700 w-20 shrink-0">開始:</label>
+                                <input type="date" id="commonDeliveryStart"
+                                       class="px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500">
+                                <span class="text-xs text-gray-500">〜</span>
+                                <label class="text-xs font-medium text-gray-700 shrink-0">終了:</label>
+                                <input type="date" id="commonDeliveryEnd"
+                                       class="px-2 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                    </div>
+
                     <div id="itemsContainer" class="space-y-4">
                         <div class="item-row border border-gray-200 rounded-lg p-4">
                             <div class="grid md:grid-cols-3 gap-4 mb-3">
@@ -542,7 +581,32 @@ app.get('/', (c) => {
                                     </span>
                                 </label>
                             </div>
-                            
+
+                            <!-- 個別納品日（個別設定モード時のみ表示） -->
+                            <div class="item-delivery-area mt-3 p-3 bg-gray-50 border border-gray-200 rounded-md" style="display:none;">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <span class="text-xs font-medium text-gray-700 w-20 shrink-0">Delivery / 納品日 <span class="text-red-500">*</span></span>
+                                    <select class="item-delivery-type px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-blue-500">
+                                        <option value="date">日付 / Date</option>
+                                        <option value="period">期間 / Period</option>
+                                    </select>
+                                </div>
+                                <div class="item-delivery-date-fields flex items-center gap-2">
+                                    <span class="text-xs text-gray-500 w-20 shrink-0">日付:</span>
+                                    <input type="date" name="itemDeliveryDate[]"
+                                           class="item-delivery-date px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div class="item-delivery-period-fields flex items-center gap-2" style="display:none;">
+                                    <span class="text-xs text-gray-500 w-20 shrink-0">開始:</span>
+                                    <input type="date" name="itemDeliveryStart[]"
+                                           class="item-delivery-start px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-blue-500">
+                                    <span class="text-xs text-gray-400">〜</span>
+                                    <span class="text-xs text-gray-500 shrink-0">終了:</span>
+                                    <input type="date" name="itemDeliveryEnd[]"
+                                           class="item-delivery-end px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+
                             <div class="mt-3 text-right">
                                 <button type="button" class="remove-item text-red-600 hover:text-red-800 text-sm font-medium" style="display: none;">
                                     <i class="fas fa-trash mr-1"></i>Remove Item
@@ -1260,8 +1324,9 @@ app.get('/', (c) => {
                 
                 if (taxType === 'inclusive') {
                     // Tax inclusive: calculate tax only on taxable items
+                    // taxAmount = taxable subtotal × (10/110), rounded to nearest integer
                     const taxableBaseAmount = taxableSubtotal / 1.1;
-                    taxAmount = taxableSubtotal - taxableBaseAmount;
+                    taxAmount = Math.round(taxableSubtotal - taxableBaseAmount);
                     
                     if (hasWithholding) {
                         // Calculate withholding: tax-inclusive items need conversion, tax-exempt items don't
@@ -1298,7 +1363,7 @@ app.get('/', (c) => {
                             }
                         });
                         
-                        withholdingAmount = Math.round(withholdingBaseAmount * withholdingRate);
+                        withholdingAmount = Math.floor(withholdingBaseAmount * withholdingRate);
                         total = subtotal - withholdingAmount;
                     } else {
                         total = subtotal;
@@ -1310,7 +1375,7 @@ app.get('/', (c) => {
                     if (hasWithholding) {
                         // Calculate withholding on subtotal directly (no tax to exclude)
                         withholdingBaseAmount = withholdingSubtotal;
-                        withholdingAmount = Math.round(withholdingSubtotal * withholdingRate);
+                        withholdingAmount = Math.floor(withholdingSubtotal * withholdingRate);
                         total = subtotal - withholdingAmount;
                     } else {
                         total = subtotal;
@@ -1361,9 +1426,21 @@ app.get('/', (c) => {
                 
                 // Show remove button
                 newRow.querySelector('.remove-item').style.display = 'inline-block';
-                
+
                 container.appendChild(newRow);
-                
+
+                // Sync delivery mode for new row
+                const isIndividual = document.getElementById('useIndividualDelivery').checked;
+                const newDeliveryArea = newRow.querySelector('.item-delivery-area');
+                newDeliveryArea.style.display = isIndividual ? 'block' : 'none';
+                if (isIndividual) {
+                    syncDeliveryRequired(newRow, false); // default: date mode
+                } else {
+                    newRow.querySelector('.item-delivery-date').removeAttribute('required');
+                    newRow.querySelector('.item-delivery-start').removeAttribute('required');
+                    newRow.querySelector('.item-delivery-end').removeAttribute('required');
+                }
+
                 // Update remove button visibility
                 updateRemoveButtons();
             }
@@ -1377,6 +1454,33 @@ app.get('/', (c) => {
                 });
             }
             
+            // Get delivery date text for a given item index (or common if not individual)
+            function getDeliveryText(index) {
+                const isIndividual = document.getElementById('useIndividualDelivery').checked;
+                if (isIndividual) {
+                    const rows = document.querySelectorAll('.item-row');
+                    const row = rows[index];
+                    if (!row) return '';
+                    const type = row.querySelector('.item-delivery-type').value;
+                    if (type === 'period') {
+                        const start = row.querySelector('.item-delivery-start').value;
+                        const end   = row.querySelector('.item-delivery-end').value;
+                        return (start && end) ? start + ' 〜 ' + end : '';
+                    } else {
+                        return row.querySelector('.item-delivery-date').value || '';
+                    }
+                } else {
+                    const type = document.getElementById('commonDeliveryType').value;
+                    if (type === 'period') {
+                        const start = document.getElementById('commonDeliveryStart').value;
+                        const end   = document.getElementById('commonDeliveryEnd').value;
+                        return (start && end) ? start + ' 〜 ' + end : '';
+                    } else {
+                        return document.getElementById('commonDeliveryDate').value || '';
+                    }
+                }
+            }
+
             // Remove item row
             function removeItemRow(btn) {
                 const row = btn.closest('.item-row');
@@ -1478,12 +1582,14 @@ app.get('/', (c) => {
                         indicators += '<span style="color: #2563eb; font-weight: bold;">●</span> ';
                     }
                     
+                    const deliveryText = getDeliveryText(i);
                     itemsHTML += \`
                         <tr class="border-b">
                             <td class="border border-gray-800 py-1 px-1" style="font-size: 9px;">\${deptDisplay}</td>
                             <td class="border border-gray-800 py-1 px-1 text-xs">\${indicators}\${jobCategories[i]}</td>
                             <td class="border border-gray-800 py-1 px-1 text-xs">\${taskDetails[i]}</td>
                             <td class="border border-gray-800 py-1 px-1 text-xs">\${projectNames[i]}</td>
+                            <td class="border border-gray-800 py-1 px-1 text-xs" style="font-size:9px;">\${deliveryText}</td>
                             <td class="border border-gray-800 py-1 px-1 text-center text-xs">\${quantities[i]}</td>
                             <td class="border border-gray-800 py-1 px-1 text-right text-xs">\${currencySymbol}\${parseFloat(unitPrices[i]).toLocaleString()}</td>
                             <td class="border border-gray-800 py-1 px-1 text-right text-xs font-medium">\${currencySymbol}\${parseFloat(subtotals[i]).toLocaleString()}</td>
@@ -1599,6 +1705,7 @@ app.get('/', (c) => {
                                         <th class="border border-gray-800 py-1 px-1 text-left text-xs">Job Category<br>業務カテゴリ</th>
                                         <th class="border border-gray-800 py-1 px-1 text-left text-xs">Task Details<br>タスク詳細</th>
                                         <th class="border border-gray-800 py-1 px-1 text-left text-xs">Project<br>プロジェクト</th>
+                                        <th class="border border-gray-800 py-1 px-1 text-left text-xs">Delivery<br>納品日</th>
                                         <th class="border border-gray-800 py-1 px-1 text-center text-xs">Qty<br>数量</th>
                                         <th class="border border-gray-800 py-1 px-1 text-right text-xs">Unit Price<br>単価</th>
                                         <th class="border border-gray-800 py-1 px-1 text-right text-xs">Subtotal<br>小計</th>
@@ -1780,7 +1887,8 @@ app.get('/', (c) => {
                         unitPrice: parseFloat(unitPrices[i]),
                         subtotal: parseFloat(subtotals[i]),
                         hasWithholding: itemHasWithholding,
-                        isTaxExempt: isTaxExempt
+                        isTaxExempt: isTaxExempt,
+                        deliveryText: getDeliveryText(i)
                     });
                 }
                 
@@ -1837,6 +1945,7 @@ app.get('/', (c) => {
                                         <th class="border border-gray-800 py-1 px-1 text-left text-xs">No.</th>
                                         <th class="border border-gray-800 py-1 px-1 text-left text-xs">Task / タスク</th>
                                         <th class="border border-gray-800 py-1 px-1 text-left text-xs">Project / プロジェクト</th>
+                                        <th class="border border-gray-800 py-1 px-1 text-left text-xs">Delivery / 納品日</th>
                                         <th class="border border-gray-800 py-1 px-1 text-center text-xs">Qty / 数量</th>
                                         <th class="border border-gray-800 py-1 px-1 text-right text-xs">Unit Price / 単価</th>
                                         <th class="border border-gray-800 py-1 px-1 text-right text-xs">Subtotal / 小計</th>
@@ -1855,6 +1964,7 @@ app.get('/', (c) => {
                                 <td class="border border-gray-800 py-1 px-1 text-center text-xs">\${item.index}</td>
                                 <td class="border border-gray-800 py-1 px-1 text-xs">\${indicators}\${item.taskDetails}</td>
                                 <td class="border border-gray-800 py-1 px-1 text-xs">\${item.projectName}</td>
+                                <td class="border border-gray-800 py-1 px-1 text-xs" style="font-size:9px;">\${item.deliveryText}</td>
                                 <td class="border border-gray-800 py-1 px-1 text-center text-xs">\${item.quantity}</td>
                                 <td class="border border-gray-800 py-1 px-1 text-right text-xs">\${currencySymbol}\${item.unitPrice.toLocaleString()}</td>
                                 <td class="border border-gray-800 py-1 px-1 text-right text-xs font-medium">\${currencySymbol}\${Math.round(item.subtotal).toLocaleString()}</td>
@@ -2422,7 +2532,104 @@ app.get('/', (c) => {
                         calculateTotals();
                     }
                 });
-                
+
+                // -------------------------------------------------------
+                // Delivery Date / 納品日 ロジック
+                // -------------------------------------------------------
+
+                // 共通：日付/期間 切り替え
+                document.getElementById('commonDeliveryType').addEventListener('change', function() {
+                    const isPeriod = this.value === 'period';
+                    document.getElementById('commonDeliveryDateFields').style.display  = isPeriod ? 'none' : 'flex';
+                    document.getElementById('commonDeliveryPeriodFields').style.display = isPeriod ? 'flex' : 'none';
+                });
+
+                // 個別：日付/期間 切り替え（委譲）
+                document.getElementById('itemsContainer').addEventListener('change', function(e) {
+                    if (e.target.matches('.item-delivery-type')) {
+                        const row = e.target.closest('.item-row');
+                        const isPeriod = e.target.value === 'period';
+                        row.querySelector('.item-delivery-date-fields').style.display   = isPeriod ? 'none' : 'flex';
+                        row.querySelector('.item-delivery-period-fields').style.display = isPeriod ? 'flex' : 'none';
+                        // required 更新
+                        syncDeliveryRequired(row, isPeriod);
+                    }
+                });
+
+                // 個別設定チェックボックス切り替え
+                document.getElementById('useIndividualDelivery').addEventListener('change', function() {
+                    applyDeliveryMode(this.checked);
+                });
+
+                // 個別設定モードの適用
+                function applyDeliveryMode(individual) {
+                    const commonArea = document.getElementById('commonDeliveryArea');
+                    commonArea.style.display = individual ? 'none' : 'block';
+
+                    document.querySelectorAll('.item-delivery-area').forEach(area => {
+                        area.style.display = individual ? 'block' : 'none';
+                    });
+
+                    // required の付与・解除
+                    if (individual) {
+                        // 共通フィールドの required を外す
+                        document.getElementById('commonDeliveryDate').removeAttribute('required');
+                        document.getElementById('commonDeliveryStart').removeAttribute('required');
+                        document.getElementById('commonDeliveryEnd').removeAttribute('required');
+                        // 各行に required を付与
+                        document.querySelectorAll('.item-row').forEach(row => {
+                            syncDeliveryRequired(row, row.querySelector('.item-delivery-type').value === 'period');
+                        });
+                    } else {
+                        // 各行の required を外す
+                        document.querySelectorAll('.item-row').forEach(row => {
+                            row.querySelector('.item-delivery-date').removeAttribute('required');
+                            row.querySelector('.item-delivery-start').removeAttribute('required');
+                            row.querySelector('.item-delivery-end').removeAttribute('required');
+                        });
+                        // 共通フィールドに required を付与
+                        syncCommonDeliveryRequired();
+                    }
+                }
+
+                // 共通フィールドの required を現在の type に合わせて設定
+                function syncCommonDeliveryRequired() {
+                    const isPeriod = document.getElementById('commonDeliveryType').value === 'period';
+                    const dateField  = document.getElementById('commonDeliveryDate');
+                    const startField = document.getElementById('commonDeliveryStart');
+                    const endField   = document.getElementById('commonDeliveryEnd');
+                    if (isPeriod) {
+                        dateField.removeAttribute('required');
+                        startField.setAttribute('required', 'required');
+                        endField.setAttribute('required', 'required');
+                    } else {
+                        dateField.setAttribute('required', 'required');
+                        startField.removeAttribute('required');
+                        endField.removeAttribute('required');
+                    }
+                }
+
+                // 個別行の required を type に合わせて設定
+                function syncDeliveryRequired(row, isPeriod) {
+                    const dateField  = row.querySelector('.item-delivery-date');
+                    const startField = row.querySelector('.item-delivery-start');
+                    const endField   = row.querySelector('.item-delivery-end');
+                    if (isPeriod) {
+                        dateField.removeAttribute('required');
+                        startField.setAttribute('required', 'required');
+                        endField.setAttribute('required', 'required');
+                    } else {
+                        dateField.setAttribute('required', 'required');
+                        startField.removeAttribute('required');
+                        endField.removeAttribute('required');
+                    }
+                }
+
+                // 初期化：共通モードで日付フィールドを required に設定
+                syncCommonDeliveryRequired();
+
+                // -------------------------------------------------------
+
                 // Preview button
                 document.getElementById('previewBtn').addEventListener('click', generatePreview);
                 
