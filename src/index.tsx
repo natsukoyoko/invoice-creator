@@ -916,6 +916,31 @@ app.get('/', (c) => {
                     </div>
                 </div>
 
+                <!-- Attachments / 添付ファイル -->
+                <div class="no-print bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">
+                        <i class="fas fa-paperclip mr-2 text-gray-600"></i>Attachments / 添付ファイル
+                        <span class="text-sm font-normal text-gray-500 ml-2">（任意・PDF末尾に追加されます）</span>
+                    </h2>
+
+                    <!-- Drop Zone -->
+                    <div id="attachDropZone"
+                         class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition"
+                         onclick="document.getElementById('attachInput').click()"
+                         ondragover="event.preventDefault(); this.classList.add('border-blue-400','bg-blue-50')"
+                         ondragleave="this.classList.remove('border-blue-400','bg-blue-50')"
+                         ondrop="handleAttachDrop(event)">
+                        <i class="fas fa-camera text-3xl text-gray-400 mb-2"></i>
+                        <p class="text-sm text-gray-600 font-medium">写真・画像をここにドロップ、またはタップして選択</p>
+                        <p class="text-xs text-gray-400 mt-1">JPG / PNG / GIF / WebP · 1ファイル最大10MB · 最大10枚</p>
+                        <input type="file" id="attachInput" accept="image/*" multiple style="display:none"
+                               onchange="handleAttachFiles(this.files)">
+                    </div>
+
+                    <!-- Thumbnail list -->
+                    <div id="attachThumbnails" class="mt-4 grid grid-cols-3 gap-3" style="display:none;"></div>
+                </div>
+
                 <!-- Form Actions -->
                 <div class="no-print flex gap-4">
                     <button type="button" id="previewBtn" 
@@ -955,6 +980,108 @@ app.get('/', (c) => {
 
         <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
         <script>
+            // ============================================================
+            // Attachments / 添付画像管理
+            // ============================================================
+            const MAX_ATTACH = 10;
+            const MAX_SIZE_MB = 10;
+            // attachedImages: [{ name, dataUrl }]
+            let attachedImages = [];
+
+            function handleAttachFiles(files) {
+                Array.from(files).forEach(file => {
+                    if (!file.type.startsWith('image/')) {
+                        alert(file.name + ' は画像ファイルではありません。');
+                        return;
+                    }
+                    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+                        alert(file.name + ' は10MBを超えています。');
+                        return;
+                    }
+                    if (attachedImages.length >= MAX_ATTACH) {
+                        alert('添付画像は最大' + MAX_ATTACH + '枚までです。');
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        attachedImages.push({ name: file.name, dataUrl: e.target.result });
+                        renderAttachThumbnails();
+                    };
+                    reader.readAsDataURL(file);
+                });
+                // Reset input so same file can be re-selected
+                document.getElementById('attachInput').value = '';
+            }
+
+            function handleAttachDrop(event) {
+                event.preventDefault();
+                document.getElementById('attachDropZone').classList.remove('border-blue-400', 'bg-blue-50');
+                handleAttachFiles(event.dataTransfer.files);
+            }
+
+            function removeAttach(index) {
+                attachedImages.splice(index, 1);
+                renderAttachThumbnails();
+            }
+
+            function moveAttach(index, direction) {
+                const newIndex = index + direction;
+                if (newIndex < 0 || newIndex >= attachedImages.length) return;
+                const tmp = attachedImages[index];
+                attachedImages[index] = attachedImages[newIndex];
+                attachedImages[newIndex] = tmp;
+                renderAttachThumbnails();
+            }
+
+            function renderAttachThumbnails() {
+                const container = document.getElementById('attachThumbnails');
+                if (attachedImages.length === 0) {
+                    container.style.display = 'none';
+                    container.innerHTML = '';
+                    return;
+                }
+                container.style.display = 'grid';
+                container.innerHTML = attachedImages.map((img, i) => \`
+                    <div class="relative border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                        <img src="\${img.dataUrl}" alt="\${img.name}"
+                             class="w-full object-cover" style="height:120px;">
+                        <div class="p-1.5">
+                            <p class="text-xs text-gray-500 truncate">\${img.name}</p>
+                            <div class="flex justify-between mt-1">
+                                <div class="flex gap-1">
+                                    <button type="button" onclick="moveAttach(\${i}, -1)"
+                                            class="px-1.5 py-0.5 text-xs bg-gray-200 rounded hover:bg-gray-300 \${i === 0 ? 'opacity-30 cursor-not-allowed' : ''}"
+                                            \${i === 0 ? 'disabled' : ''}>◀</button>
+                                    <button type="button" onclick="moveAttach(\${i}, 1)"
+                                            class="px-1.5 py-0.5 text-xs bg-gray-200 rounded hover:bg-gray-300 \${i === attachedImages.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}"
+                                            \${i === attachedImages.length - 1 ? 'disabled' : ''}>▶</button>
+                                </div>
+                                <button type="button" onclick="removeAttach(\${i})"
+                                        class="px-1.5 py-0.5 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <span class="absolute top-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1.5 py-0.5 rounded">\${i + 1}</span>
+                    </div>
+                \`).join('');
+            }
+
+            // 添付画像ページHTMLを生成（プレビュー末尾に挿入する）
+            function buildAttachmentPagesHTML() {
+                if (attachedImages.length === 0) return '';
+                return attachedImages.map((img, i) => \`
+                    <div style="page-break-before: always; width:100%; text-align:center; padding: 8mm 0;">
+                        <p style="font-size:10px; color:#6b7280; margin-bottom:6px;">
+                            Attachment \${i + 1} / 添付書類 \${i + 1}：\${img.name}
+                        </p>
+                        <img src="\${img.dataUrl}"
+                             style="max-width:100%; max-height:240mm; object-fit:contain; display:block; margin:0 auto;">
+                    </div>
+                \`).join('');
+            }
+            // ============================================================
+
             // Master Data
             const DEPARTMENTS = {
                 'A-01': 'A-01 ソリューション / Solution',
@@ -1772,6 +1899,8 @@ app.get('/', (c) => {
                         </div>
                         \` : ''}
                         
+                        \${buildAttachmentPagesHTML()}
+
                         <div class="mt-6 text-center no-print">
                             <button onclick="window.print()" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
                                 <i class="fas fa-print mr-2"></i>Print Invoice / 印刷
@@ -2203,6 +2332,8 @@ app.get('/', (c) => {
                         </div>
                     </div>
                     
+                    \${buildAttachmentPagesHTML()}
+
                     <div class="no-print mt-6 text-center">
                         <button onclick="window.print()" class="px-6 py-2 rounded-md transition font-medium" style="background-color: #1C008D; color: white;">
                             <i class="fas fa-print mr-2"></i>Print Invoice / 印刷
