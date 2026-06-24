@@ -351,6 +351,26 @@ app.get('/', (c) => {
                         Invoice Details / 請求書詳細
                     </h2>
                     
+                    <!-- Invoice Number -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1 required">
+                            Invoice Number / 請求書番号
+                        </label>
+                        <div class="flex gap-2 items-center">
+                            <input type="text" name="invoiceNumber" id="invoiceNumber" required
+                                   class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                                   placeholder="INV-20250624-4821">
+                            <button type="button" id="reissueBtn"
+                                    class="px-3 py-2 text-sm font-medium rounded-md border border-orange-300 text-orange-700 bg-orange-50 hover:bg-orange-100 transition whitespace-nowrap"
+                                    title="元の番号を保持したまま -R を付けて再発行番号を生成します">
+                                <i class="fas fa-redo mr-1"></i>再発行 / Re-issue
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">
+                            ※ プレビュー時に自動生成されます。再送・差し替えの場合は「再発行」ボタンを押してください。
+                        </p>
+                    </div>
+
                     <div class="grid md:grid-cols-2 gap-4 mb-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1 required">
@@ -1082,6 +1102,17 @@ app.get('/', (c) => {
             }
             // ============================================================
 
+            // 請求書番号の自動生成
+            function generateInvoiceNumber() {
+                const now = new Date();
+                const date = now.getFullYear().toString()
+                    + String(now.getMonth() + 1).padStart(2, '0')
+                    + String(now.getDate()).padStart(2, '0');
+                const rand = String(Math.floor(Math.random() * 9000) + 1000);
+                return 'INV-' + date + '-' + rand;
+            }
+            // ============================================================
+
             // Master Data
             const DEPARTMENTS = {
                 'A-01': 'A-01 ソリューション / Solution',
@@ -1788,7 +1819,10 @@ app.get('/', (c) => {
                 const previewHTML = \`
                     <div class="print-container max-w-4xl mx-auto">
                         <div class="invoice-header">
-                            <h1 class="text-4xl font-bold">Invoice</h1>
+                            <div>
+                                <h1 class="text-4xl font-bold">Invoice</h1>
+                                \${formData.get('invoiceNumber') ? \`<p class="text-xs text-gray-500 mt-1 font-mono">No. \${formData.get('invoiceNumber')}</p>\` : ''}
+                            </div>
                             <div class="invoice-dates">
                                 <div><strong>Invoice Date / 請求日:</strong><br>\${formData.get('invoiceDate')}</div>
                                 <div class="mt-1"><strong>Due Date / 支払期限:</strong><br>\${formData.get('dueDate')}</div>
@@ -2220,6 +2254,7 @@ app.get('/', (c) => {
                         <div class="invoice-summary">
                             <div class="text-center mb-6">
                                 <h1 class="text-2xl font-bold mb-2">請求書 / INVOICE</h1>
+                                \${formData.get('invoiceNumber') ? \`<p class="text-xs text-gray-500 font-mono mb-1">No. \${formData.get('invoiceNumber')}</p>\` : ''}
                                 <p class="text-xs text-gray-600">Invoice Date / 請求日: \${formData.get('invoiceDate')}&nbsp;&nbsp;|&nbsp;&nbsp;Due Date / 支払期限: \${formData.get('dueDate')}</p>
                             </div>
                             
@@ -2761,11 +2796,29 @@ app.get('/', (c) => {
 
                 // -------------------------------------------------------
 
-                // Preview button
-                document.getElementById('previewBtn').addEventListener('click', generatePreview);
+                // 再発行ボタン：-R サフィックスを付与
+                document.getElementById('reissueBtn').addEventListener('click', function() {
+                    const field = document.getElementById('invoiceNumber');
+                    let current = field.value.trim();
+                    if (!current) current = generateInvoiceNumber();
+                    // すでに -R が付いている場合は一旦除去してから付け直す
+                    current = current.replace(/-R$/, '');
+                    field.value = current + '-R';
+                });
+
+                // Preview button（空の場合は自動生成してからプレビュー）
+                document.getElementById('previewBtn').addEventListener('click', function() {
+                    const field = document.getElementById('invoiceNumber');
+                    if (!field.value.trim()) field.value = generateInvoiceNumber();
+                    generatePreview();
+                });
                 
-                // Work Report button
-                document.getElementById('workReportBtn').addEventListener('click', generateWorkReportPreview);
+                // Work Report button（同上）
+                document.getElementById('workReportBtn').addEventListener('click', function() {
+                    const field = document.getElementById('invoiceNumber');
+                    if (!field.value.trim()) field.value = generateInvoiceNumber();
+                    generateWorkReportPreview();
+                });
                 
                 // Save button
                 document.getElementById('saveBtn').addEventListener('click', saveFormData);
