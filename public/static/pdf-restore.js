@@ -8,7 +8,7 @@ if (typeof pdfjsLib !== 'undefined') {
         'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 }
 
-// PDFから全テキストを抽出する
+// PDFから全テキストを抽出する（Y座標をもとに実際の行単位で改行を復元する）
 async function extractTextFromPdf(file) {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -16,7 +16,18 @@ async function extractTextFromPdf(file) {
     for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
-        fullText += content.items.map(item => item.str).join(' ') + '\n';
+        let lastY = null;
+        let line = '';
+        content.items.forEach(function(item) {
+            const y = item.transform[5];
+            if (lastY !== null && Math.abs(y - lastY) > 2) {
+                fullText += line.trim() + '\n';
+                line = '';
+            }
+            line += item.str + ' ';
+            lastY = y;
+        });
+        if (line.trim()) fullText += line.trim() + '\n';
     }
     return fullText;
 }
@@ -65,83 +76,92 @@ async function parsePdfAndRestore(file) {
         if (el) el.value = d;
     }
 
+    // フォームの各項目は1つの<div>＝1行で出力されているため、行単位で照合する
+    const allLines = text.split('\n').map(function(l) { return l.trim(); }).filter(Boolean);
+
     // ---- 担当者（Attn）----
-    const attnMatch = text.match(/Attn[：:]\s*([^\n]+)/);
-    if (attnMatch) {
-        const el = document.querySelector('[name="clientContact"]');
-        if (el) el.value = attnMatch[1].trim();
+    // "Attn:" とその値は同じ行にあるので、行全体から直接取り出す
+    const attnLine = allLines.find(function(l) { return /^Attn[：:]/.test(l); });
+    if (attnLine) {
+        const m = attnLine.match(/^Attn[：:]\s*(.+)$/);
+        if (m) {
+            const el = document.querySelector('[name="clientContact"]');
+            if (el) el.value = m[1].trim();
+        }
     }
 
     // ---- 発行者情報（FROM セクション）----
-    if (text.includes('Corporation') || text.includes('法人')) {
+    // BILL TO側の固定文言（〒104-0045・Phone: +81 03-6869-7976 等）と誤って
+    // マッチしないよう、"FROM" 〜 "Invoice Items" の範囲だけを対象にする
+    const fromIdx = text.indexOf('FROM');
+    const itemsIdx = text.indexOf('Invoice Items');
+    const fromSection = fromIdx !== -1
+        ? text.slice(fromIdx, itemsIdx !== -1 ? itemsIdx : undefined)
+        : text;
+    const fromLines = fromSection.split('\n').map(function(l) { return l.trim(); }).filter(Boolean);
+
+    if (fromSection.includes('Corporation') || fromSection.includes('法人')) {
         const el = document.querySelector('[name="issuerType"]');
         if (el) el.value = 'corporation';
-    } else if (text.includes('Sole Proprietor') || text.includes('個人事業主')) {
+    } else if (fromSection.includes('Sole Proprietor') || fromSection.includes('個人事業主')) {
         const el = document.querySelector('[name="issuerType"]');
         if (el) el.value = 'sole';
-    } else if (text.includes('Freelancer') || text.includes('フリーランス')) {
+    } else if (fromSection.includes('Freelancer') || fromSection.includes('フリーランス')) {
         const el = document.querySelector('[name="issuerType"]');
         if (el) el.value = 'freelance';
     }
 
-    // issuerName
-    const issuerNameMatch = text.match(/FROM\s+(?:Corporation[^\n]*|Sole Proprietor[^\n]*|Freelanc[^\n]*)?\s*([^\n]+?)\s*(?:法人番号|〒|Email|Phone|適格|\()/);
-    if (issuerNameMatch) {
-        const el = document.querySelector('[name="issuerName"]');
-        if (el) el.value = issuerNameMatch[1].trim();
+    // issuerName・tradeName
+    // ラベルを持たないため、「FROM」行（〜あれば発行者区分の行）の次の行を発行者名として扱う
+    const issuerTypeLabels = ['Corporation / 法人', 'Sole Proprietor / 個人事業主', 'Freelancer / フリーランス'];
+    let fromLineIdx = fromLines.findIndex(function(l) { return l === 'FROM' || l.indexOf('FROM') === 0; });
+    if (fromLineIdx !== -1) {
+        fromLineIdx++;
+        if (fromLineIdx < fromLines.length && issuerTypeLabels.indexOf(fromLines[fromLineIdx]) !== -1) {
+            fromLineIdx++;
+        }
+        if (fromLineIdx < fromLines.length) {
+            const el = document.querySelector('[name="issuerName"]');
+            if (el) el.value = fromLines[fromLineIdx];
+            fromLineIdx++;
+        }
+        if (fromLineIdx < fromLines.length) {
+            const tm = fromLines[fromLineIdx].match(/^\(([^)]+)\)$/);
+            if (tm) {
+                const el = document.querySelector('[name="tradeName"]');
+                if (el) el.value = tm[1].trim();
+            }
+        }
     }
 
-    // tradeName
-    const tradeNameMatch = text.match(/\(([^)]+)\)\s*(?:法人番号|〒|Email|T-\d)/);
-    if (tradeNameMatch) {
-        const el = document.querySelector('[name="tradeName"]');
-        if (el) el.value = tradeNameMatch[1].trim();
-    }
-
-    // corporateNumber
-    const corpNumMatch = text.match(/法人番号[：:]\s*([\d]+)/);
-    if (corpNumMatch) {
-        const el = document.querySelector('[name="corporateNumber"]');
-        if (el) el.value = corpNumMatch[1].trim();
-    }
-
-    // issuerTNumber（適格事業者番号）
-    const tNumMatch = text.match(/適格事業者番号[：:]\s*(T[\d\w-]+)/i);
-    if (tNumMatch) {
-        const el = document.querySelector('[name="issuerTNumber"]');
-        if (el) el.value = tNumMatch[1].trim();
-    }
-
-    // postalCode
-    const postalMatch = text.match(/〒([\d\-]+)/);
-    if (postalMatch) {
-        const el = document.querySelector('[name="postalCode"]');
-        if (el) el.value = postalMatch[1].trim();
-    }
-
-    // Email
-    const emailMatch = text.match(/Email[：:]\s*([\w.+-]+@[\w.-]+\.[a-zA-Z]{2,})/);
-    if (emailMatch) {
-        const el = document.querySelector('[name="issuerEmail"]');
-        if (el) el.value = emailMatch[1].trim();
-    }
-
-    // Phone
-    const phoneMatch = text.match(/Phone[：:]\s*([+\d\s\-()]+)/);
-    if (phoneMatch) {
-        const el = document.querySelector('[name="issuerPhone"]');
-        if (el) el.value = phoneMatch[1].trim();
-    }
-
-    // countryOfResidence
-    const countryMatch = text.match(/Country[：:]\s*([^\n]+)/);
-    if (countryMatch) {
-        const el = document.querySelector('[name="countryOfResidence"]');
-        if (el) el.value = countryMatch[1].trim();
-    }
+    // 以降はすべて「ラベル: 値」が1行で完結しているため、行単位でマッチさせる
+    let hasCountry = false;
+    fromLines.forEach(function(line) {
+        let m;
+        if ((m = line.match(/^法人番号[：:]\s*([\d]+)/))) {
+            const el = document.querySelector('[name="corporateNumber"]');
+            if (el) el.value = m[1].trim();
+        } else if ((m = line.match(/^適格事業者番号[：:]\s*(T[\d\w-]+)/i))) {
+            const el = document.querySelector('[name="issuerTNumber"]');
+            if (el) el.value = m[1].trim();
+        } else if ((m = line.match(/^Country[：:]\s*(.+)$/))) {
+            const el = document.querySelector('[name="countryOfResidence"]');
+            if (el) el.value = m[1].trim();
+            hasCountry = true;
+        } else if ((m = line.match(/^〒([\d\-]+)/))) {
+            const el = document.querySelector('[name="postalCode"]');
+            if (el) el.value = m[1].trim();
+        } else if ((m = line.match(/^Email[：:]\s*([\w.+-]+@[\w.-]+\.[a-zA-Z]{2,})/))) {
+            const el = document.querySelector('[name="issuerEmail"]');
+            if (el) el.value = m[1].trim();
+        } else if ((m = line.match(/^Phone[：:]\s*([+\d\s\-()]+)/))) {
+            const el = document.querySelector('[name="issuerPhone"]');
+            if (el) el.value = m[1].trim();
+        }
+    });
 
     // residesInJapan
-    const residesValue = countryMatch ? 'no' : 'yes';
+    const residesValue = hasCountry ? 'no' : 'yes';
     const radioBtn = document.querySelector('input[name="residesInJapan"][value="' + residesValue + '"]');
     if (radioBtn) {
         radioBtn.checked = true;
