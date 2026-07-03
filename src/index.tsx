@@ -1266,7 +1266,10 @@ app.get('/', (c) => {
                             showPaymentFields(data.paymentMethod);
                             
                             // Populate payment method specific fields
+                            // ※ invoiceNumber は請求ごとに新規生成するため復元しない
+                            const SKIP_RESTORE_KEYS = new Set(['invoiceNumber']);
                             Object.keys(data).forEach(key => {
+                                if (SKIP_RESTORE_KEYS.has(key)) return;
                                 const field = document.querySelector(\`[name="\${key}"]\`);
                                 if (field && data[key]) {
                                     field.value = data[key];
@@ -1332,6 +1335,8 @@ app.get('/', (c) => {
                 
                 // Save notes
                 data.notes = formData.get('notes');
+                // ※ invoiceNumber は請求ごとに新規生成するため保存しない
+                delete data.invoiceNumber;
                 
                 localStorage.setItem('invoiceFormData', JSON.stringify(data));
                 alert('Form data saved successfully! / フォームデータを保存しました！');
