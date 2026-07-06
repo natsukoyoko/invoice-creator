@@ -354,7 +354,9 @@ async function parsePdfAndRestore(file) {
 
     // 以降はすべて「ラベル: 値」が1行で完結しているため、行単位でマッチさせる
     const corpNumRe = new RegExp('^' + tolerantPattern('法人番号') + '[：:]\\s*([\\d]+)');
-    const tNumRe = new RegExp('^' + tolerantPattern('適格事業者番号') + '[：:]\\s*(T[\\d\\w-]+)', 'i');
+    // 適格事業者番号は本来「T」で始まるが、Tなしで登録されているPDFも
+    // 存在するため、先頭のTは必須にしない
+    const tNumRe = new RegExp('^' + tolerantPattern('適格事業者番号') + '[：:]\\s*([\\w-]+)', 'i');
     let hasCountry = false;
     let emailLineIdx = -1;
     fromLines.forEach(function(line, idx) {
