@@ -1205,15 +1205,17 @@ app.get('/', (c) => {
             const JOB_LIST_FOREIGN = [
                 // グループA - 源泉徴収対象 (20.42%)
                 { name: 'クリエイティブ制作 / Creative Production', withholding: true, group: 'A' },
-                { name: 'コンテンツ企画・制作支援 / Content Planning & Production Support', withholding: true, group: 'A' },
-                { name: 'コピー・ライティング業務 / Copywriting', withholding: true, group: 'A' },
                 { name: '動画・画像編集 / Video & Image Editing', withholding: true, group: 'A' },
                 // グループB - 源泉徴収対象外
-                { name: '翻訳業務 / Translation', withholding: false, group: 'B' },
+                { name: 'コンテンツ企画・制作支援 / Content Planning & Production Support', withholding: false, group: 'B' },
+                { name: 'コピー・ライティング業務 / Copywriting', withholding: false, group: 'B' },
                 { name: 'SNS投稿業務 (インフルエンサー / KOL) / SNS Posting (Influencer / KOL)', withholding: false, group: 'B' },
                 { name: 'インフルエンサー管理・調整業務 / Influencer Management', withholding: false, group: 'B' },
                 { name: '広告運用 / Ad Operations', withholding: false, group: 'B' },
                 { name: '商談獲得 / Business Development', withholding: false, group: 'B' },
+                // グループB - 源泉徴収対象外（デフォルト）だが、専門的な文献翻訳等は
+                // チェックボックスで個別に源泉徴収対象へ変更可能
+                { name: '翻訳業務 / Translation', withholding: true, group: 'B', manual: true },
                 // 手動選択
                 { name: 'その他 / Other', withholding: true, group: 'Manual', manual: true }
             ];
