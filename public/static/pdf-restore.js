@@ -49,73 +49,123 @@ function buildLinesFromItems(items) {
     return out;
 }
 
-// 請求項目テーブルを列単位で抽出する。
-// テーブルのヘッダー（Department/Job Category/...）のX座標を列境界として使い、
-// 各アイテムを最も近い（かつ超えない）列境界に振り分けることで、
-// 自由記述のタスク詳細・プロジェクト名なども含めて正確に値を取り出せる。
+// 請求項目テーブルを行・列単位で抽出する。
+// 表は横幅が内容に応じて可変（table-layout: auto）のため、業務カテゴリ名や
+// タスク詳細が長いと見出し・データのどちらも複数行に折り返る。そのため、
+// 「同じY座標＝同じ行」という単純な仮定は成立しない。代わりに、
+// (1) 列見出しは折り返っても先頭の単語は分割されないため、先頭の単語で
+//     列のX座標境界を特定し、
+// (2) 各データ行の開始は必ず部署コード（A-01等）で始まるため、これを
+//     行の境切りとして使い、次の部署コードが現れるまでの全アイテムを
+//     1行分として扱う。
+// という2段構えで、折り返りの影響を受けずに列を特定する。
 function extractItemRows(items) {
-    const colDefs = [
-        { key: 'department',  label: 'Department' },
-        { key: 'jobCategory', label: 'Job Category' },
-        { key: 'taskDetails',  label: 'Task Details' },
-        { key: 'project',     label: 'Project' },
-        { key: 'delivery',    label: 'Delivery' },
-        { key: 'qty',         label: 'Qty' },
-        { key: 'unitPrice',   label: 'Unit Price' },
-        { key: 'subtotal',    label: 'Subtotal' }
+    const DEPT_KEYS = ['A-01', 'A-02', 'B-01', 'C-01', 'C-02', 'X-01'];
+    const colAnchors = [
+        { key: 'department',  word: 'Department' },
+        { key: 'jobCategory', word: 'Job' },
+        { key: 'taskDetails', word: 'Task' },
+        { key: 'project',     word: 'Project' },
+        { key: 'delivery',    word: 'Delivery' },
+        { key: 'qty',         word: 'Qty' },
+        { key: 'unitPrice',   word: 'Unit' },
+        { key: 'subtotal',    word: 'Subtotal' }
     ];
-    const headerItems = colDefs.map(function(c) {
-        return items.find(function(it) { return it.str.trim() === c.label; });
-    });
-    if (headerItems.some(function(it) { return !it; })) return [];
 
-    const headerY = headerItems[0].transform[5];
-    const boundaries = headerItems
-        .map(function(it, idx) { return { key: colDefs[idx].key, x: it.transform[4] }; })
-        .sort(function(a, b) { return a.x - b.x; });
+    const itemsHeaderItem = items.find(function(it) { return it.str.indexOf('Invoice Items') !== -1; });
+    if (!itemsHeaderItem) return [];
+    const tableTopY = itemsHeaderItem.transform[5];
 
-    // ヘッダーは英語ラベルの下に日本語ラベルがもう1行あるため、
-    // そのY座標までを「ヘッダー領域」として除外する
-    const headerAreaYs = items
-        .filter(function(it) { return it.transform[5] <= headerY + 1 && it.transform[5] > headerY - 15; })
-        .map(function(it) { return it.transform[5]; });
-    const headerBottomY = headerAreaYs.length ? Math.min.apply(null, headerAreaYs) : headerY;
-
-    // 表の終端（★=...の注記や小計行）のYを境界として、項目行だけを対象にする
+    // 表の終端（★=...の注記や小計行）のYを境界として、見出し・項目行の探索範囲を絞る
     const endCandidates = items.filter(function(it) {
-        return it.transform[5] < headerBottomY - 5 &&
+        return it.transform[5] < tableTopY - 5 &&
             (it.str.indexOf('Subtotal /') === 0 || it.str.indexOf('= Subject') !== -1 || it.str.indexOf('= No Tax') !== -1);
     });
     const endY = endCandidates.length
         ? Math.max.apply(null, endCandidates.map(function(it) { return it.transform[5]; }))
         : -Infinity;
 
-    const rowItems = items.filter(function(it) {
-        const y = it.transform[5];
-        return y < headerBottomY - 5 && y > endY + 2 && it.str.trim() !== '';
-    });
-
-    const rowsByY = [];
-    rowItems.slice().sort(function(a, b) { return b.transform[5] - a.transform[5]; }).forEach(function(it) {
-        const y = it.transform[5];
-        let row = rowsByY.find(function(r) { return Math.abs(r.y - y) <= 2; });
-        if (!row) { row = { y: y, items: [] }; rowsByY.push(row); }
-        row.items.push(it);
-    });
-
-    return rowsByY.map(function(row) {
-        const cols = {};
-        colDefs.forEach(function(c) { cols[c.key] = ''; });
-        row.items.slice().sort(function(a, b) { return a.transform[4] - b.transform[4]; }).forEach(function(it) {
-            const x = it.transform[4];
-            let colKey = boundaries[0].key;
-            for (let i = 0; i < boundaries.length; i++) {
-                if (x >= boundaries[i].x - 2) colKey = boundaries[i].key;
-            }
-            cols[colKey] += it.str;
+    // 列見出しは先頭の単語（Department/Job/Task/Project/Delivery/Qty/Unit/Subtotal）
+    // で判定する。折り返っていなければラベル全体がこの単語で始まる形でマッチする。
+    const headerAnchorItems = colAnchors.map(function(c) {
+        return items.find(function(it) {
+            return it.transform[5] < tableTopY + 2 && it.transform[5] > endY && it.str.trim().indexOf(c.word) === 0;
         });
-        Object.keys(cols).forEach(function(k) { cols[k] = cols[k].trim(); });
-        return cols;
+    });
+    if (headerAnchorItems.some(function(it) { return !it; })) return [];
+
+    const boundaries = headerAnchorItems
+        .map(function(it, idx) { return { key: colAnchors[idx].key, x: it.transform[4] }; })
+        .sort(function(a, b) { return a.x - b.x; });
+    // Department〜Deliveryは左寄せの自由記述で、業務カテゴリ等が長いと折り返って
+    // 見出しの直下より右まで文字が続くことがあるため、「超えない最大の見出しX座標」
+    // で判定する。一方Qty/Unit Price/Subtotalは右寄せで値が短いため、見出しの
+    // X座標と値のX座標がずれる。そのため右寄せ3列は「最も近い見出し」で判定する。
+    const RIGHT_ALIGNED_KEYS = ['qty', 'unitPrice', 'subtotal'];
+    const leftBoundaries = boundaries.filter(function(b) { return RIGHT_ALIGNED_KEYS.indexOf(b.key) === -1; });
+    const rightBoundaries = boundaries.filter(function(b) { return RIGHT_ALIGNED_KEYS.indexOf(b.key) !== -1; });
+    const deliveryBoundary = boundaries.find(function(b) { return b.key === 'delivery'; });
+    const qtyBoundary = boundaries.find(function(b) { return b.key === 'qty'; });
+    const regionSplitX = (deliveryBoundary.x + qtyBoundary.x) / 2;
+    function columnForX(x) {
+        if (x < regionSplitX) {
+            let colKey = leftBoundaries[0].key;
+            for (let bi = 0; bi < leftBoundaries.length; bi++) {
+                if (x >= leftBoundaries[bi].x - 2) colKey = leftBoundaries[bi].key;
+            }
+            return colKey;
+        }
+        let nearest = rightBoundaries[0];
+        rightBoundaries.forEach(function(b) {
+            if (Math.abs(x - b.x) < Math.abs(x - nearest.x)) nearest = b;
+        });
+        return nearest.key;
+    }
+    const deptX = headerAnchorItems[0].transform[4];
+
+    // 部署コードのセルを行の開始位置として使う
+    const rowStarts = items
+        .filter(function(it) {
+            return DEPT_KEYS.indexOf(it.str.trim()) !== -1 &&
+                Math.abs(it.transform[4] - deptX) < 5 &&
+                it.transform[5] < tableTopY - 5 &&
+                it.transform[5] > endY;
+        })
+        .sort(function(a, b) { return b.transform[5] - a.transform[5]; });
+    if (rowStarts.length === 0) return [];
+
+    return rowStarts.map(function(startItem, i) {
+        const rowTopY = startItem.transform[5] + 2;
+        const rowBottomY = (i + 1 < rowStarts.length) ? rowStarts[i + 1].transform[5] + 2 : endY;
+
+        const rowItems = items.filter(function(it) {
+            const y = it.transform[5];
+            return y <= rowTopY && y > rowBottomY && it.str.trim() !== '';
+        });
+
+        // 列に振り分け、同じ列内で複数行に折り返っている場合は行の切れ目に
+        // スペースを補って連結する（折り返り位置には元々空白があったはず）
+        const cols = {};
+        colAnchors.forEach(function(c) { cols[c.key] = { text: '', lastY: null }; });
+        rowItems
+            .slice()
+            .sort(function(a, b) {
+                if (Math.abs(a.transform[5] - b.transform[5]) > 2) return b.transform[5] - a.transform[5];
+                return a.transform[4] - b.transform[4];
+            })
+            .forEach(function(it) {
+                const colKey = columnForX(it.transform[4]);
+                const col = cols[colKey];
+                if (col.lastY !== null && Math.abs(it.transform[5] - col.lastY) > 2) {
+                    col.text += ' ';
+                }
+                col.text += it.str;
+                col.lastY = it.transform[5];
+            });
+
+        const result = {};
+        colAnchors.forEach(function(c) { result[c.key] = cols[c.key].text.trim(); });
+        return result;
     });
 }
 
@@ -477,9 +527,11 @@ async function parsePdfAndRestore(file) {
 
                     const jobSel = r.querySelector('.item-job-category');
                     if (jobSel) {
-                        const lineClean = jobCategoryText.replace(/[★●]/g, '').trim();
+                        // 列の折り返り復元時に空白が失われることがあるため、
+                        // 空白を除いた文字列同士で前方一致を判定する
+                        const lineClean = jobCategoryText.replace(/[★●\s]/g, '');
                         const matched = Array.from(jobSel.options).find(function(o) {
-                            return o.value && lineClean.includes(o.value.substring(0, 8));
+                            return o.value && lineClean.includes(o.value.replace(/\s/g, '').substring(0, 8));
                         });
                         if (matched) {
                             jobSel.value = matched.value;
