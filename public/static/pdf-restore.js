@@ -8,7 +8,31 @@ if (typeof pdfjsLib !== 'undefined') {
         'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 }
 
-// PDFから全テキストを抽出する（Y座標をもとに実際の行単位で改行を復元する）
+// Y座標が近いアイテム群を1行のテキストにまとめる（Y降順で処理する）
+function buildLinesFromItems(items) {
+    const sorted = items.slice().sort(function(a, b) { return b.transform[5] - a.transform[5]; });
+    let lastY = null;
+    let line = '';
+    let out = '';
+    sorted.forEach(function(item) {
+        const y = item.transform[5];
+        if (lastY !== null && Math.abs(y - lastY) > 2) {
+            out += line.trim() + '\n';
+            line = '';
+        }
+        line += item.str + ' ';
+        lastY = y;
+    });
+    if (line.trim()) out += line.trim() + '\n';
+    return out;
+}
+
+// PDFから全テキストを抽出する
+// 通常の1カラム部分はY座標をもとに実際の行単位で改行を復元する。
+// BILL TO / FROM はCSS Gridの2カラムレイアウトのため、PDF内では視覚的な行順
+// （左右のカラムが交互）でテキストが並ぶ。そのままY座標だけで行を復元すると
+// 左右の内容が同じ行に混ざってしまうため、この区間だけはX座標で列を分離してから
+// 行を復元する（BILL TO側を全て出力してからFROM側を出力する）。
 async function extractTextFromPdf(file) {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -16,18 +40,39 @@ async function extractTextFromPdf(file) {
     for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
-        let lastY = null;
-        let line = '';
-        content.items.forEach(function(item) {
-            const y = item.transform[5];
-            if (lastY !== null && Math.abs(y - lastY) > 2) {
-                fullText += line.trim() + '\n';
-                line = '';
-            }
-            line += item.str + ' ';
-            lastY = y;
-        });
-        if (line.trim()) fullText += line.trim() + '\n';
+
+        const billToItem = content.items.find(function(it) { return it.str.includes('BILL TO'); });
+        const fromItem = content.items.find(function(it) { return it.str.trim() === 'FROM'; });
+        const itemsHeaderItem = content.items.find(function(it) { return it.str.includes('Invoice Items'); });
+
+        if (billToItem && fromItem && itemsHeaderItem) {
+            const billToY = billToItem.transform[5];
+            const itemsHeaderY = itemsHeaderItem.transform[5];
+            const midX = (billToItem.transform[4] + fromItem.transform[4]) / 2;
+
+            const beforeItems = [];
+            const leftItems  = [];
+            const rightItems = [];
+            const afterItems = [];
+
+            content.items.forEach(function(item) {
+                const y = item.transform[5];
+                if (y > billToY + 2) {
+                    beforeItems.push(item);
+                } else if (y > itemsHeaderY + 2) {
+                    if (item.transform[4] < midX) leftItems.push(item); else rightItems.push(item);
+                } else {
+                    afterItems.push(item);
+                }
+            });
+
+            fullText += buildLinesFromItems(beforeItems);
+            fullText += buildLinesFromItems(leftItems);
+            fullText += buildLinesFromItems(rightItems);
+            fullText += buildLinesFromItems(afterItems);
+        } else {
+            fullText += buildLinesFromItems(content.items);
+        }
     }
     return fullText;
 }
