@@ -277,15 +277,19 @@ async function parsePdfAndRestore(file) {
 
     // issuerName・tradeName
     // ラベルを持たないため、「FROM」行（〜あれば発行者区分の行）の次の行を発行者名として扱う
+    const claimedIdx = {};
     let fromLineIdx = fromLines.findIndex(function(l) { return l === 'FROM' || l.indexOf('FROM') === 0; });
     if (fromLineIdx !== -1) {
+        claimedIdx[fromLineIdx] = true;
         fromLineIdx++;
         if (fromLineIdx === issuerTypeLineIdx) {
+            claimedIdx[fromLineIdx] = true;
             fromLineIdx++;
         }
         if (fromLineIdx < fromLines.length) {
             const el = document.querySelector('[name="issuerName"]');
             if (el) el.value = fromLines[fromLineIdx];
+            claimedIdx[fromLineIdx] = true;
             fromLineIdx++;
         }
         if (fromLineIdx < fromLines.length) {
@@ -293,6 +297,7 @@ async function parsePdfAndRestore(file) {
             if (tm) {
                 const el = document.querySelector('[name="tradeName"]');
                 if (el) el.value = tm[1].trim();
+                claimedIdx[fromLineIdx] = true;
             }
         }
     }
@@ -301,29 +306,50 @@ async function parsePdfAndRestore(file) {
     const corpNumRe = new RegExp('^' + tolerantPattern('法人番号') + '[：:]\\s*([\\d]+)');
     const tNumRe = new RegExp('^' + tolerantPattern('適格事業者番号') + '[：:]\\s*(T[\\d\\w-]+)', 'i');
     let hasCountry = false;
-    fromLines.forEach(function(line) {
+    let emailLineIdx = -1;
+    fromLines.forEach(function(line, idx) {
         let m;
         if ((m = line.match(corpNumRe))) {
             const el = document.querySelector('[name="corporateNumber"]');
             if (el) el.value = m[1].trim();
+            claimedIdx[idx] = true;
         } else if ((m = line.match(tNumRe))) {
             const el = document.querySelector('[name="issuerTNumber"]');
             if (el) el.value = m[1].trim();
+            claimedIdx[idx] = true;
         } else if ((m = line.match(/^Country[：:]\s*(.+)$/))) {
             const el = document.querySelector('[name="countryOfResidence"]');
             if (el) el.value = m[1].trim();
             hasCountry = true;
+            claimedIdx[idx] = true;
         } else if ((m = line.match(/^〒([\d\-]+)/))) {
             const el = document.querySelector('[name="postalCode"]');
             if (el) el.value = m[1].trim();
+            claimedIdx[idx] = true;
         } else if ((m = line.match(/^Email[：:]\s*([\w.+-]+@[\w.-]+\.[a-zA-Z]{2,})/))) {
             const el = document.querySelector('[name="issuerEmail"]');
             if (el) el.value = m[1].trim();
+            claimedIdx[idx] = true;
+            emailLineIdx = idx;
         } else if ((m = line.match(/^Phone[：:]\s*([+\d\s\-()]+)/))) {
             const el = document.querySelector('[name="issuerPhone"]');
             if (el) el.value = m[1].trim();
+            claimedIdx[idx] = true;
         }
     });
+
+    // issuerAddress
+    // ラベルを持たず、氏名/屋号より後・Emailより前に残る未使用の行（複数行の場合あり）が住所
+    if (emailLineIdx !== -1) {
+        const addressLines = [];
+        for (let i = 0; i < emailLineIdx; i++) {
+            if (!claimedIdx[i] && fromLines[i]) addressLines.push(fromLines[i]);
+        }
+        if (addressLines.length > 0) {
+            const el = document.querySelector('[name="issuerAddress"]');
+            if (el) el.value = addressLines.join('\n');
+        }
+    }
 
     // residesInJapan
     const residesValue = hasCountry ? 'no' : 'yes';
@@ -463,6 +489,22 @@ async function parsePdfAndRestore(file) {
                 }, 150 * rowIdx);
             })(row, qty, unitPrice, data.jobCategory, data.taskDetails, data.project);
         });
+    }
+
+    // ---- 備考 ----
+    // "Notes / 備考:" 見出し（英語部分で判定）の後ろに続く行を、宣誓文の注記が
+    // 始まる手前まで連結する
+    const notesLineIdx = allLines.findIndex(function(l) { return l.indexOf('Notes') === 0; });
+    if (notesLineIdx !== -1) {
+        const notesLines = [];
+        for (let i = notesLineIdx + 1; i < allLines.length; i++) {
+            if (/^✓|^Declaration/.test(allLines[i])) break;
+            notesLines.push(allLines[i]);
+        }
+        if (notesLines.length > 0) {
+            const el = document.querySelector('[name="notes"]');
+            if (el) el.value = notesLines.join('\n');
+        }
     }
 
     // ---- 完了メッセージ ----
