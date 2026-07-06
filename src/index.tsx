@@ -182,22 +182,28 @@ app.get('/', (c) => {
             <!-- Main Form -->
             <form id="invoiceForm" class="space-y-6">
 
-                <!-- PDF復元セクション -->
-                <div class="no-print bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-lg shadow-sm p-5">
-                    <h2 class="text-base font-bold text-indigo-800 mb-1">
-                        <i class="fas fa-file-import mr-2"></i>再発行・過去PDF読み込み / Re-issue from Previous Invoice PDF
-                    </h2>
-                    <p class="text-xs text-indigo-600 mb-3">過去に発行したPDFをアップロードすると、全フィールドを自動で復元します。再発行の場合はそのまま「再発行」ボタンを押してください。</p>
-                    <div id="pdfDropZone"
-                         class="border-2 border-dashed border-indigo-300 rounded-lg p-6 text-center cursor-pointer hover:bg-indigo-50 transition-colors"
-                         onclick="document.getElementById('pdfFileInput').click()">
-                        <i class="fas fa-cloud-upload-alt text-3xl text-indigo-400 mb-2"></i>
-                        <p class="text-sm text-indigo-600 font-medium">クリックまたはPDFをここにドロップ</p>
-                        <p class="text-xs text-gray-400 mt-1">このフォームで発行したPDFのみ対応</p>
-                    </div>
-                    <input type="file" id="pdfFileInput" accept=".pdf" class="hidden">
-                    <div id="pdfRestoreStatus" class="mt-3 hidden">
-                        <div id="pdfRestoreMsg" class="text-sm font-medium px-4 py-2 rounded-md"></div>
+                <!-- PDF復元セクション（デフォルトは折りたたみ） -->
+                <div class="no-print bg-gray-50 border border-gray-200 rounded-lg shadow-sm">
+                    <button type="button" id="pdfRestoreToggle"
+                            class="w-full flex items-center justify-between px-4 py-3 text-left focus:outline-none">
+                        <span class="text-sm font-medium text-gray-600">
+                            <i class="fas fa-file-import mr-2"></i>再発行・過去PDF読み込み / Re-issue from Previous Invoice PDF
+                        </span>
+                        <i class="fas fa-chevron-down text-gray-400 transition-transform" id="pdfRestoreChevron"></i>
+                    </button>
+                    <div id="pdfRestoreContent" class="hidden px-5 pb-5">
+                        <p class="text-xs text-indigo-600 mb-3">過去に発行したPDFをアップロードすると、全フィールドを自動で復元します。再発行の場合はそのまま「再発行」ボタンを押してください。</p>
+                        <div id="pdfDropZone"
+                             class="border-2 border-dashed border-indigo-300 rounded-lg p-6 text-center cursor-pointer hover:bg-indigo-50 transition-colors"
+                             onclick="document.getElementById('pdfFileInput').click()">
+                            <i class="fas fa-cloud-upload-alt text-3xl text-indigo-400 mb-2"></i>
+                            <p class="text-sm text-indigo-600 font-medium">クリックまたはPDFをここにドロップ</p>
+                            <p class="text-xs text-gray-400 mt-1">このフォームで発行したPDFのみ対応</p>
+                        </div>
+                        <input type="file" id="pdfFileInput" accept=".pdf" class="hidden">
+                        <div id="pdfRestoreStatus" class="mt-3 hidden">
+                            <div id="pdfRestoreMsg" class="text-sm font-medium px-4 py-2 rounded-md"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -2836,6 +2842,15 @@ app.get('/', (c) => {
 
                 // ---- PDF 復元：外部JSで定義した initPdfDropZone() を呼び出す ----
                 if (typeof initPdfDropZone === 'function') initPdfDropZone();
+
+                // PDF復元セクションの折りたたみ開閉
+                document.getElementById('pdfRestoreToggle').addEventListener('click', function() {
+                    const content = document.getElementById('pdfRestoreContent');
+                    const chevron = document.getElementById('pdfRestoreChevron');
+                    content.classList.toggle('hidden');
+                    chevron.classList.toggle('fa-chevron-down');
+                    chevron.classList.toggle('fa-chevron-up');
+                });
 
                 // 再発行ボタン：-R サフィックスを付与
                 document.getElementById('reissueBtn').addEventListener('click', function() {
