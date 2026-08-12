@@ -49,6 +49,116 @@ function buildLinesFromItems(items) {
     return out;
 }
 
+// 請求サマリーテーブル（作業報告書付きPDF専用）を行・列単位で抽出する。
+// 列構成: Department / Job Category / Qty / Amount（Unit Price・Task・Projectなし）
+// 「Invoice Summary」見出しから「Payment Information」までの範囲が対象。
+function extractSummaryRows(items) {
+    const DEPT_KEYS = ['A-01', 'A-02', 'B-01', 'C-01', 'C-02', 'X-01'];
+
+    // 「Invoice Summary」を含むアイテムのYを上端とする
+    const summaryHeaderItem = items.find(function(it) {
+        return it.str.indexOf('Invoice Summary') !== -1;
+    });
+    if (!summaryHeaderItem) return [];
+    const tableTopY = summaryHeaderItem.transform[5];
+
+    // 「Payment Information」のYを下端とする
+    const paymentInfoItem = items.find(function(it) {
+        return it.str.indexOf('Payment Information') !== -1 ||
+               it.str.indexOf('Subtotal /') === 0;
+    });
+    const endY = paymentInfoItem ? paymentInfoItem.transform[5] + 2 : tableTopY - 200;
+
+    // 列ヘッダーのX座標を特定
+    const deptHeader    = items.find(function(it) { return it.transform[5] < tableTopY + 2 && it.transform[5] > endY && it.str.indexOf('Department') === 0; });
+    const jobHeader     = items.find(function(it) { return it.transform[5] < tableTopY + 2 && it.transform[5] > endY && it.str.indexOf('Job Category') === 0; });
+    const qtyHeader     = items.find(function(it) { return it.transform[5] < tableTopY + 2 && it.transform[5] > endY && it.str.indexOf('Qty') === 0; });
+    const amountHeader  = items.find(function(it) { return it.transform[5] < tableTopY + 2 && it.transform[5] > endY && it.str.indexOf('Amount') === 0; });
+
+    if (!deptHeader || !jobHeader || !qtyHeader || !amountHeader) return [];
+
+    const deptX    = deptHeader.transform[4];
+    const jobX     = jobHeader.transform[4];
+    const qtyX     = qtyHeader.transform[4];
+    const amountX  = amountHeader.transform[4];
+
+    // 部署コード（A-01等）が来るアイテムを行の開始マーカーとして使う
+    const rowStarts = items
+        .filter(function(it) {
+            return DEPT_KEYS.indexOf(it.str.trim()) !== -1 &&
+                Math.abs(it.transform[4] - deptX) < 10 &&
+                it.transform[5] < tableTopY - 5 &&
+                it.transform[5] > endY;
+        })
+        .sort(function(a, b) { return b.transform[5] - a.transform[5]; });
+
+    if (rowStarts.length === 0) return [];
+
+    // ※注記行（「※」や「See detailed breakdown」等）のY座標を検出して
+    // 各データ行の下端を注記行より上に設定する
+    const remarkItem = items.find(function(it) {
+        return it.str.indexOf('※') === 0 || it.str.indexOf('See detailed breakdown') === 0;
+    });
+    const remarkY = remarkItem ? remarkItem.transform[5] : null;
+
+    return rowStarts.map(function(startItem, i) {
+        const rowTopY = startItem.transform[5] + 2;
+        let rowBottomY;
+        if (i + 1 < rowStarts.length) {
+            rowBottomY = rowStarts[i + 1].transform[5] + 2;
+        } else if (remarkY !== null) {
+            // 最終データ行の下端は注記行の少し上まで
+            rowBottomY = remarkY + 1;
+        } else {
+            rowBottomY = endY;
+        }
+
+        const rowItems = items.filter(function(it) {
+            const y = it.transform[5];
+            // 注記行（※で始まるアイテム）は除外
+            if (it.str.indexOf('※') === 0) return false;
+            return y <= rowTopY && y > rowBottomY && it.str.trim() !== '';
+        });
+
+        // 列に振り分け（X座標で判定）
+        const cols = { department: '', jobCategory: '', qty: '', amount: '' };
+        rowItems
+            .slice()
+            .sort(function(a, b) {
+                if (Math.abs(a.transform[5] - b.transform[5]) > 2) return b.transform[5] - a.transform[5];
+                return a.transform[4] - b.transform[4];
+            })
+            .forEach(function(it) {
+                const x = it.transform[4];
+                // amountX（右端）に最も近い → amount列
+                // qtyX に近い → qty列
+                // jobX 以上 amountX 未満 → jobCategory列
+                // deptX 付近 → department列
+                if (Math.abs(x - amountX) < 30) {
+                    cols.amount += it.str;
+                } else if (Math.abs(x - qtyX) < 20) {
+                    cols.qty += it.str;
+                } else if (x >= jobX - 5) {
+                    cols.jobCategory += it.str;
+                } else {
+                    cols.department += it.str;
+                }
+            });
+
+        // department列から先頭の部署コード（A-01等）だけを取り出す
+        const deptCodeMatch = cols.department.match(/^([A-Z]-\d{2})\s*(.*)/);
+        const deptCode    = deptCodeMatch ? deptCodeMatch[1] : cols.department.trim();
+        const deptSuffix  = deptCodeMatch ? deptCodeMatch[2].trim() : '';
+
+        return {
+            department:  deptCode + (deptSuffix ? ' ' + deptSuffix : ''),
+            jobCategory: cols.jobCategory.trim(),
+            qty:         cols.qty.replace(/[^\d.]/g, ''),
+            amount:      cols.amount.replace(/[¥$€£₩,]/g, '').trim()
+        };
+    });
+}
+
 // 請求項目テーブルを行・列単位で抽出する。
 // 表は横幅が内容に応じて可変（table-layout: auto）のため、業務カテゴリ名や
 // タスク詳細が長いと見出し・データのどちらも複数行に折り返る。そのため、
@@ -171,10 +281,12 @@ function extractItemRows(items) {
 
 // PDFから全テキストと請求項目の行データを抽出する。
 // 通常の1カラム部分はY座標をもとに実際の行単位で改行を復元する。
-// BILL TO / FROM はCSS Gridの2カラムレイアウトのため、PDF内では視覚的な行順
+// TO / FROM はCSS Gridの2カラムレイアウトのため、PDF内では視覚的な行順
 // （左右のカラムが交互）でテキストが並ぶことがある。そのままY座標だけで行を
 // 復元すると左右の内容が混ざってしまうため、この区間だけはX座標で列を分離
-// してから行を復元する（BILL TO側を全て出力してからFROM側を出力する）。
+// してから行を復元する（TO側を全て出力してからFROM側を出力する）。
+// ※作業報告書付きPDFでは「TO」/「FROM」のラベルが使われ、Invoice Itemsの代わりに
+//   「Invoice Summary」テーブルが1ページ目にある。extractSummaryRows()で対応。
 async function extractTextFromPdf(file) {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -184,9 +296,15 @@ async function extractTextFromPdf(file) {
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
 
-        const billToItem = content.items.find(function(it) { return it.str.includes('BILL TO'); });
+        // TO/FROM 分割用のアンカーを探す（「BILL TO」または「TO」）
+        const billToItem = content.items.find(function(it) {
+            return it.str.includes('BILL TO') || it.str.trim() === 'TO';
+        });
         const fromItem = content.items.find(function(it) { return it.str.trim() === 'FROM'; });
-        const itemsHeaderItem = content.items.find(function(it) { return it.str.includes('Invoice Items'); });
+        // Invoice Items テーブル（通常フォーム）または Invoice Summary（作業報告書付き）
+        const itemsHeaderItem = content.items.find(function(it) {
+            return it.str.includes('Invoice Items') || it.str.includes('Invoice Summary');
+        });
 
         if (billToItem && fromItem && itemsHeaderItem) {
             const billToY = billToItem.transform[5];
@@ -217,7 +335,15 @@ async function extractTextFromPdf(file) {
             fullText += buildLinesFromItems(content.items);
         }
 
-        itemRows = itemRows.concat(extractItemRows(content.items));
+        // 通常の Invoice Items テーブルを試みる
+        const stdRows = extractItemRows(content.items);
+        if (stdRows.length > 0) {
+            itemRows = itemRows.concat(stdRows);
+        } else {
+            // 作業報告書付きの Invoice Summary テーブルを試みる
+            const summaryRows = extractSummaryRows(content.items);
+            itemRows = itemRows.concat(summaryRows);
+        }
     }
     return { text: fullText, itemRows: itemRows };
 }
@@ -264,9 +390,11 @@ async function parsePdfAndRestore(file) {
     // ---- 請求日 / 支払期限 ----
     // ラベルと値は<br>で改行されているため別の行になる。タイトル部分と請求日欄は
     // 横並びのため、PDF内では両者の行が前後することがあるので、ラベル行より後ろの
-    // 範囲（BILL TOより手前）を順に探して最初に見つかった日付を値とする
+    // 範囲（TO/BILL TOより手前）を順に探して最初に見つかった日付を値とする
     // （ラベルの日本語部分は文字化けの影響を受けうるため英語部分のみで判定する）。
-    const billToLineIdx = allLines.findIndex(function(l) { return l.indexOf('BILL TO') === 0; });
+    const billToLineIdx = allLines.findIndex(function(l) {
+        return l.indexOf('BILL TO') === 0 || l === 'TO';
+    });
     const headerLines = billToLineIdx !== -1 ? allLines.slice(0, billToLineIdx) : allLines;
     function dateAfterLabel(labelPrefix) {
         const idx = headerLines.findIndex(function(l) { return l.indexOf(labelPrefix) === 0; });
@@ -300,10 +428,17 @@ async function parsePdfAndRestore(file) {
     }
 
     // ---- 発行者情報（FROM セクション）----
-    // BILL TO側の固定文言（〒104-0045・Phone: +81 03-6869-7976 等）と誤って
-    // マッチしないよう、"FROM" 〜 "Invoice Items" の範囲だけを対象にする
+    // TO/BILL TO側の固定文言（〒104-0045・Phone: +81 03-6869-7976 等）と誤って
+    // マッチしないよう、"FROM" 〜 "Invoice Items"（または "Invoice Summary"）
+    // の範囲だけを対象にする
     const fromIdx = text.indexOf('FROM');
-    const itemsIdx = text.indexOf('Invoice Items');
+    const itemsIdx = (function() {
+        const idxItems   = text.indexOf('Invoice Items');
+        const idxSummary = text.indexOf('Invoice Summary');
+        if (idxItems === -1) return idxSummary;
+        if (idxSummary === -1) return idxItems;
+        return Math.min(idxItems, idxSummary);
+    })();
     const fromSection = fromIdx !== -1
         ? text.slice(fromIdx, itemsIdx !== -1 ? itemsIdx : undefined)
         : text;
@@ -482,6 +617,8 @@ async function parsePdfAndRestore(file) {
     // ---- 請求項目の復元 ----
     // 表のX座標から列単位で抽出したitemRowsを使うことで、タスク詳細・
     // プロジェクト名のような自由記述項目も含めて正確に復元できる。
+    // ※作業報告書付きPDFの場合は unitPrice の代わりに amount（合計金額）しかない
+    //   ため、amount ÷ qty で単価を算出してフィールドに入力する。
     const itemContainer = document.getElementById('itemsContainer');
     if (itemContainer && itemRows.length > 0) {
         const existingRows = itemContainer.querySelectorAll('.item-row');
@@ -501,6 +638,7 @@ async function parsePdfAndRestore(file) {
             const row = rows[rowIdx];
             if (!row) return;
 
+            // 部署コードを抽出（department列から先頭の"A-01"等を取り出す）
             const deptValue = deptKeys.find(function(k) { return data.department.indexOf(k) !== -1; });
             if (deptValue) {
                 const deptSel = row.querySelector('[name="department[]"]');
@@ -510,8 +648,16 @@ async function parsePdfAndRestore(file) {
                 }
             }
 
-            const qty = parseFloat(data.qty.replace(/[^\d.]/g, '')) || 1;
-            const unitPrice = parseFloat(data.unitPrice.replace(/[^\d.]/g, '')) || 0;
+            const qty = parseFloat(data.qty) || 1;
+            // 通常フォーム: unitPrice あり
+            // 作業報告書付き: unitPrice なし → amount / qty で単価を計算
+            let unitPrice = 0;
+            if (data.unitPrice && data.unitPrice.replace(/[^\d.]/g, '')) {
+                unitPrice = parseFloat(data.unitPrice.replace(/[^\d.]/g, '')) || 0;
+            } else if (data.amount) {
+                const totalAmount = parseFloat(data.amount.replace(/[^\d.]/g, '')) || 0;
+                unitPrice = qty > 0 ? Math.round(totalAmount / qty) : totalAmount;
+            }
 
             (function(r, q, u, jobCategoryText, taskDetails, projectName) {
                 setTimeout(function() {
@@ -524,8 +670,8 @@ async function parsePdfAndRestore(file) {
                         priceEl.value = u;
                         priceEl.dispatchEvent(new Event('input', { bubbles: true }));
                     }
-                    if (taskEl) taskEl.value = taskDetails;
-                    if (projEl) projEl.value = projectName;
+                    if (taskEl && taskDetails) taskEl.value = taskDetails;
+                    if (projEl && projectName) projEl.value = projectName;
 
                     const jobSel = r.querySelector('.item-job-category');
                     if (jobSel) {
@@ -541,7 +687,7 @@ async function parsePdfAndRestore(file) {
                         }
                     }
                 }, 150 * rowIdx);
-            })(row, qty, unitPrice, data.jobCategory, data.taskDetails, data.project);
+            })(row, qty, unitPrice, data.jobCategory, data.taskDetails || '', data.project || '');
         });
     }
 
