@@ -203,6 +203,17 @@ app.get('/', (c) => {
                         <input type="file" id="pdfFileInput" accept=".pdf" class="hidden">
                         <div id="pdfRestoreStatus" class="mt-3 hidden">
                             <div id="pdfRestoreMsg" class="text-sm font-medium px-4 py-2 rounded-md"></div>
+                            <!-- 復元成功後に表示される再発行アクションバー -->
+                            <div id="reissueActionBar" class="hidden mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-center justify-between gap-3">
+                                <div class="text-sm text-orange-800">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    差し替え・再送の場合は請求書番号に <strong>-R</strong> を付与してください
+                                </div>
+                                <button type="button" id="reissueBtn2"
+                                        class="shrink-0 px-4 py-2 text-sm font-bold rounded-md bg-orange-500 hover:bg-orange-600 text-white transition flex items-center gap-2">
+                                    <i class="fas fa-redo"></i>再発行番号を付与 (-R)
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -391,7 +402,7 @@ app.get('/', (c) => {
                             <button type="button" id="reissueBtn"
                                     class="px-3 py-2 text-sm font-medium rounded-md border border-orange-300 text-orange-700 bg-orange-50 hover:bg-orange-100 transition whitespace-nowrap"
                                     title="元の番号を保持したまま -R を付けて再発行番号を生成します">
-                                <i class="fas fa-redo mr-1"></i>再発行 / Re-issue
+                                <i class="fas fa-redo mr-1"></i>-R
                             </button>
                         </div>
                         <p class="text-xs text-gray-400 mt-1">
@@ -2854,15 +2865,23 @@ app.get('/', (c) => {
                     chevron.classList.toggle('fa-chevron-up');
                 });
 
-                // 再発行ボタン：-R サフィックスを付与
-                document.getElementById('reissueBtn').addEventListener('click', function() {
+                // 再発行ボタン共通処理
+                function applyReissueNumber() {
                     const field = document.getElementById('invoiceNumber');
                     let current = field.value.trim();
                     if (!current) current = generateInvoiceNumber();
-                    // すでに -R が付いている場合は一旦除去してから付け直す
                     current = current.replace(/-R$/, '');
                     field.value = current + '-R';
-                });
+                    // アクションバーを「付与済み」表示に更新
+                    const bar = document.getElementById('reissueActionBar');
+                    if (bar) {
+                        bar.classList.remove('bg-orange-50', 'border-orange-200');
+                        bar.classList.add('bg-green-50', 'border-green-200');
+                        bar.innerHTML = '<div class="text-sm text-green-800"><i class="fas fa-check-circle mr-1"></i>請求書番号に <strong>-R</strong> を付与しました：<span class="font-mono">' + field.value + '</span></div>';
+                    }
+                }
+                document.getElementById('reissueBtn').addEventListener('click', applyReissueNumber);
+                document.getElementById('reissueBtn2').addEventListener('click', applyReissueNumber);
 
                 // Preview button（空の場合は自動生成してからプレビュー）
                 document.getElementById('previewBtn').addEventListener('click', function() {

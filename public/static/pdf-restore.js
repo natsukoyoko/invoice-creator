@@ -1146,7 +1146,11 @@ async function parsePdfAndRestore(file) {
 
     // ---- 完了メッセージ ----
     msgDiv.className = 'text-sm font-medium px-4 py-2 rounded-md bg-green-100 text-green-700';
-    msgDiv.textContent = '✅ PDFからフォームを復元しました！内容を確認し、必要であれば「再発行」ボタンを押してください。';
+    msgDiv.textContent = '✅ PDFからフォームを復元しました！内容を確認してください。';
+
+    // 再発行アクションバーを表示（差し替え・再送の場合に -R を付与するよう促す）
+    const reissueBar = document.getElementById('reissueActionBar');
+    if (reissueBar) reissueBar.classList.remove('hidden');
 
     // localStorageに保存（発行者・銀行情報を引き継ぎ）
     if (typeof saveFormData === 'function') saveFormData();
