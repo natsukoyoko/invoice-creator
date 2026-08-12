@@ -422,11 +422,20 @@ function extractWorkReportRows(items) {
             ? unitPriceVal
             : (qtyVal > 0 ? Math.round(parseAmount(cols.subtotal) / qtyVal) : 0);
 
+        // task列の先頭に★や●マーカーが付いている場合、それを取り出して
+        // jobCategory に前置する（後続の★●復元処理で参照するため）
+        const taskText = cols.task.trim();
+        const markerMatch = taskText.match(/^([★●\s]+)/);
+        const markers = markerMatch ? markerMatch[1].replace(/\s/g, '') : '';
+        const taskClean = markerMatch ? taskText.slice(markerMatch[0].length).trim() : taskText;
+
         rows.push({
             department:   currentDept,
-            jobCategory:  currentJobCategory,
-            taskDetails:  cols.task.trim(),
+            // sectionYMapから取得したjobCategoryに★●マーカーを前置（行レベルマーカー用）
+            jobCategory:  markers + currentJobCategory,
+            taskDetails:  taskClean,
             projectName:  cols.project.trim(),
+            delivery:     cols.delivery.trim(),
             qty:          String(qtyVal),
             unitPrice:    String(resolvedUnitPrice),
             amount:       ''
@@ -746,27 +755,68 @@ async function parsePdfAndRestore(file) {
                 }
             });
         } else if (detectedPayment === 'international') {
+            // 通常版と作業報告書版でラベルが異なるフィールドは両方のパターンを試みる
+            // 通常版:  "Country / 居住国:" / "Email:" / "Address / 住所:" / "Phone / 電話:"
+            // 作業報告書版: "Recipient's Country / 受取人居住国:" / "Recipient's Email / 受取人メール:" 等
             const fields = {
-                intlCountry:               new RegExp('Recipient\'s Country \\/ ' + tolerantPattern('受取人居住国') + '[：:]\\s*([^\\n]+)'),
-                intlEmail:                 new RegExp('Recipient\'s Email \\/ ' + tolerantPattern('受取人') + 'メール[：:]\\s*([^\\n]+)'),
-                intlAddress:               new RegExp('Recipient\'s Address \\/ ' + tolerantPattern('受取人住所') + '[：:]\\s*([^\\n]+)'),
-                intlPhone:                 new RegExp('Recipient\'s Phone \\/ ' + tolerantPattern('受取人電話') + '[：:]\\s*([^\\n]+)'),
-                intlDOB:                   new RegExp('Date of Birth \\/ ' + tolerantPattern('生年月日') + '[：:]\\s*([^\\n]+)'),
-                intlBankName:              new RegExp('Bank Name \\/ 銀行名[：:]\\s*([^\\n]+)'),
-                intlInstitutionCode:       new RegExp('Institution Code \\/ 金融機関コード[：:]\\s*([^\\n]+)'),
-                intlBranchName:            new RegExp('Branch Name \\/ ' + tolerantPattern('支店名') + '[：:]\\s*([^\\n]+)'),
-                intlBankAddress:           new RegExp('Bank Address \\/ 銀行住所[：:]\\s*([^\\n]+)'),
-                intlAccountNumber:         new RegExp('Account Number・IBAN \\/ 口座番号[：:]\\s*([^\\n]+)'),
-                intlSwiftCode:             new RegExp('SWIFT Code(?:\\s*\\/\\s*SWIFTコード)?[：:]\\s*([^\\n]+)'),
-                intlAccountName:           new RegExp('Account Holder \\/ 口座名義[：:]\\s*([^\\n]+)'),
-                intlAccountType:           new RegExp('Account Type \\/ 口座種別[：:]\\s*([^\\n]+)'),
-                intlAdditionalBankingInfo: new RegExp('Additional Info \\/ その他銀行情報[：:]\\s*([^\\n]+)')
+                intlCountry:               [
+                    new RegExp("Recipient's Country[^：:\n]*[：:]\\s*([^\\n]+)"),
+                    new RegExp('Country \\/ ' + tolerantPattern('居住国') + '[：:]\\s*([^\\n]+)')
+                ],
+                intlEmail:                 [
+                    new RegExp("Recipient's Email[^：:\n]*[：:]\\s*([^\\n]+)"),
+                    new RegExp('Email[：:]\\s*([^\\n]+)')
+                ],
+                intlAddress:               [
+                    new RegExp("Recipient's Address[^：:\n]*[：:]\\s*([^\\n]+)"),
+                    new RegExp('Address \\/ ' + tolerantPattern('住所') + '[：:]\\s*([^\\n]+)')
+                ],
+                intlPhone:                 [
+                    new RegExp("Recipient's Phone[^：:\n]*[：:]\\s*([^\\n]+)"),
+                    new RegExp('Phone \\/ ' + tolerantPattern('電話') + '[：:]\\s*([^\\n]+)')
+                ],
+                intlDOB:                   [
+                    new RegExp('Date of Birth[^：:\n]*[：:]\\s*([^\\n]+)')
+                ],
+                intlBankName:              [
+                    new RegExp('Bank Name \\/ 銀行名[：:]\\s*([^\\n]+)')
+                ],
+                intlInstitutionCode:       [
+                    new RegExp('Institution Code \\/ 金融機関コード[：:]\\s*([^\\n]+)')
+                ],
+                intlBranchName:            [
+                    new RegExp('Branch Name \\/ ' + tolerantPattern('支店名') + '[：:]\\s*([^\\n]+)')
+                ],
+                intlBankAddress:           [
+                    new RegExp('Bank Address \\/ 銀行住所[：:]\\s*([^\\n]+)')
+                ],
+                intlAccountNumber:         [
+                    new RegExp('Account Number・IBAN \\/ 口座番号[：:]\\s*([^\\n]+)')
+                ],
+                intlSwiftCode:             [
+                    new RegExp('SWIFT Code(?:\\s*\\/\\s*SWIFT[^：:\n]*)?[：:]\\s*([^\\n]+)')
+                ],
+                intlAccountName:           [
+                    new RegExp('Account Holder \\/ 口座名義[：:]\\s*([^\\n]+)')
+                ],
+                intlAccountType:           [
+                    new RegExp('Account Type \\/ 口座種別[：:]\\s*([^\\n]+)')
+                ],
+                intlAdditionalBankingInfo: [
+                    new RegExp('Additional Info \\/ その他銀行情報[：:]\\s*([^\\n]+)')
+                ]
             };
-            Object.entries(fields).forEach(function([name, regex]) {
-                const m = text.match(regex);
-                if (m) {
-                    const el = document.querySelector('[name="' + name + '"]');
-                    if (el) el.value = m[1].trim();
+            // 配列化されたフィールド定義を処理（最初にマッチしたパターンを使用）
+            Object.entries(fields).forEach(function(entry) {
+                const name = entry[0];
+                const patterns = entry[1];
+                for (let pi = 0; pi < patterns.length; pi++) {
+                    const m = text.match(patterns[pi]);
+                    if (m) {
+                        const el = document.querySelector('[name="' + name + '"]');
+                        if (el) el.value = m[1].trim();
+                        break;
+                    }
                 }
             });
         } else if (detectedPayment === 'paypal') {
@@ -851,9 +901,167 @@ async function parsePdfAndRestore(file) {
                         }
                     }
                 }, 150 * rowIdx);
-            })(row, qty, unitPrice, data.jobCategory, data.taskDetails || '', data.project || '');
+            })(row, qty, unitPrice, data.jobCategory, data.taskDetails || '', data.projectName || data.project || '');
         });
     }
+
+    // ---- taxType（消費税タイプ）復元 ----
+    // "Tax (10% Incl.)" という文字列がテキストに存在すれば inclusive（内税）、
+    // なければ tax-exempt（非課税）と判定する。
+    // ※PDFの合計欄にこの行が表示される（taxRow が display:flex のとき）
+    const hasTaxLine = text.includes('Tax (10% Incl.)');
+    const taxTypeEl = document.querySelector('[name="taxType"]');
+    if (taxTypeEl) {
+        taxTypeEl.value = hasTaxLine ? 'inclusive' : 'tax-exempt';
+        taxTypeEl.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    // ---- currency（通貨）復元 ----
+    // 金額列（Unit Price / Subtotal / Amount 等）の先頭記号で通貨を判定する。
+    // 優先度: EUR > $ > ¥（デフォルト JPY）
+    // 通常版: unitPrice列 "EUR 1,000" / "$ 1,000" / "¥1,000"
+    // 作業報告書版: Amount列 "EUR 1,000" / "$ 1,000" / "¥1,000"
+    let detectedCurrency = 'JPY';
+    if (/EUR\s+[\d,]+/.test(text)) {
+        detectedCurrency = 'EUR';
+    } else if (/\$\s*[\d,]+/.test(text)) {
+        detectedCurrency = 'USD';
+    }
+    const currencyEl = document.querySelector('[name="currency"]');
+    if (currencyEl) {
+        currencyEl.value = detectedCurrency;
+        currencyEl.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    // ---- workPerformedOutsideJapan（日本国外業務宣言）復元 ----
+    // 通常版: "✓ Declaration: All contracted work was performed outside Japan"
+    // 作業報告書版: "Declaration: All contracted work was performed outside Japan"
+    // どちらの形式にも対応するため "Declaration: All contracted work" で判定する
+    const hasOutsideDeclaration = text.includes('Declaration: All contracted work was performed outside Japan');
+    if (hasOutsideDeclaration) {
+        const cbEl = document.querySelector('[name="workPerformedOutsideJapan"]');
+        if (cbEl) cbEl.checked = true;
+    }
+
+    // ---- 国際送金 intlRoutingType / intlRoutingCode 復元 ----
+    // 出力形式: `${intlRoutingType}: ${intlRoutingCode}` （例: "Routing Number (ABA): 026009593"）
+    // セレクトボックスの option.value と完全一致する文字列がラベルとして出力されるため、
+    // 既知の選択肢リストと前方一致で照合する
+    if (detectedPayment === 'international') {
+        // intlRoutingType の選択肢（option.value）の一覧
+        const ROUTING_TYPE_OPTIONS = [
+            'Routing Number (ABA)',
+            'Sort Code',
+            'Transit Number',
+            'BSB Code'
+        ];
+        ROUTING_TYPE_OPTIONS.forEach(function(rtType) {
+            // "Routing Number (ABA): 026009593" の形式で検索
+            const escapedType = rtType.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const routingRe = new RegExp(escapedType + '[：:]\\s*([^\\n]+)');
+            const rm = text.match(routingRe);
+            if (rm) {
+                const rtEl = document.querySelector('[name="intlRoutingType"]');
+                const rcEl = document.querySelector('[name="intlRoutingCode"]');
+                if (rtEl) {
+                    rtEl.value = rtType;
+                    rtEl.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                if (rcEl) rcEl.value = rm[1].trim();
+            }
+        });
+    }
+
+    // ---- 請求項目の★●マーカー・Delivery列の復元 ----
+    // itemRows に収録された jobCategory テキスト（★/●プレフィックス付き）から
+    // withholding/taxExempt チェックボックスをセットする。
+    // またDelivery列テキストから itemDeliveryDate / Start / End を復元する。
+    // これは setTimeout の後で行う必要があるため、itemRows 処理内の setTimeout コールバックに
+    // 追加ロジックとして差し込む（下の itemRows.forEach の外部で後処理）。
+    //
+    // 実装方針: itemRows が処理された後（全行の setTimeout が完了した後）に実行するため
+    // 全行数 × 150ms + 200ms のタイマーで後処理を走らせる。
+    const totalDelay = (itemRows.length > 0 ? (itemRows.length - 1) * 150 : 0) + 300;
+    setTimeout(function() {
+        const rows = document.querySelectorAll('.item-row');
+
+        // useIndividualDelivery を強制的に有効化（個別納品日がある場合）
+        const hasIndividualDelivery = itemRows.some(function(r) {
+            return r.delivery && r.delivery.trim() !== '';
+        });
+        if (hasIndividualDelivery) {
+            const indivDeliveryChk = document.getElementById('useIndividualDelivery');
+            if (indivDeliveryChk && !indivDeliveryChk.checked) {
+                indivDeliveryChk.checked = true;
+                indivDeliveryChk.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        }
+
+        itemRows.forEach(function(data, rowIdx) {
+            const row = rows[rowIdx];
+            if (!row) return;
+
+            // ---- jobCategoryWithholding（★）復元 ----
+            // jobCategory テキストの先頭に "★" があれば withholding チェックボックスをONに
+            if (data.jobCategory && data.jobCategory.indexOf('★') !== -1) {
+                const cb = row.querySelector('.job-category-withholding');
+                if (cb) {
+                    cb.checked = true;
+                    cb.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
+
+            // ---- itemTaxExempt（●）復元 ----
+            // jobCategory テキストの先頭に "●" があれば課税なしチェックボックスをONに
+            // ただし taxType が 'tax-exempt' の場合は全件非課税なのでスキップ
+            const taxTypeVal = document.querySelector('[name="taxType"]') ? document.querySelector('[name="taxType"]').value : '';
+            if (taxTypeVal !== 'tax-exempt' && data.jobCategory && data.jobCategory.indexOf('●') !== -1) {
+                const cb = row.querySelector('.item-tax-exempt');
+                if (cb) {
+                    cb.checked = true;
+                    cb.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
+
+            // ---- itemDeliveryDate / Start / End 復元 ----
+            // Delivery列テキスト例: "2026-07-01 〜 2026-07-31"（期間） or "2026-07-15"（単日）
+            // deliveryArea を表示してから入力する
+            if (data.delivery && data.delivery.trim()) {
+                const deliveryArea = row.querySelector('.item-delivery-area');
+                if (deliveryArea) deliveryArea.style.display = 'block';
+
+                const deliveryText = data.delivery.trim();
+                // 期間形式: "2026-07-01 〜 2026-07-31" or "2026-07-01 ~ 2026-07-31"
+                const periodMatch = deliveryText.match(/([\d]{4}-[\d]{2}-[\d]{2})\s*[〜~]\s*([\d]{4}-[\d]{2}-[\d]{2})/);
+                if (periodMatch) {
+                    const typeEl = row.querySelector('.item-delivery-type');
+                    if (typeEl) {
+                        typeEl.value = 'period';
+                        typeEl.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                    const startEl = row.querySelector('.item-delivery-start');
+                    const endEl   = row.querySelector('.item-delivery-end');
+                    if (startEl) startEl.value = periodMatch[1];
+                    if (endEl)   endEl.value   = periodMatch[2];
+                } else {
+                    // 単日形式
+                    const singleMatch = deliveryText.match(/([\d]{4}-[\d]{2}-[\d]{2})/);
+                    if (singleMatch) {
+                        const typeEl = row.querySelector('.item-delivery-type');
+                        if (typeEl) {
+                            typeEl.value = 'date';
+                            typeEl.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                        const dateEl = row.querySelector('.item-delivery-date');
+                        if (dateEl) dateEl.value = singleMatch[1];
+                    }
+                }
+            }
+        });
+
+        // 最後に合計を再計算
+        if (typeof calculateTotals === 'function') calculateTotals();
+    }, totalDelay);
 
     // ---- 備考 ----
     // "Notes / 備考:" 見出し（英語部分で判定）の後ろに続く行を、宣誓文の注記が
