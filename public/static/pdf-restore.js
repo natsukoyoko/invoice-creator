@@ -457,7 +457,15 @@ async function extractTextFromPdf(file) {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     let fullText = '';
-    let itemRows = [];
+
+    // 2パス方式: 全ページの行候補を種別ごとに収集してから優先順位を決定する。
+    // ページ単位で判定すると「Page1:summaryRows(1行) + Page2:workRows(16行) = 17行」
+    // のように混在してしまうため、全ページ横断で優先度を適用する。
+    // 優先度: stdRows(通常テーブル) > workRows(作業報告書詳細) > summaryRows(作業報告書サマリー)
+    let stdRowsAll     = [];
+    let workRowsAll    = [];
+    let summaryRowsAll = [];
+
     for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
@@ -501,23 +509,29 @@ async function extractTextFromPdf(file) {
             fullText += buildLinesFromItems(content.items);
         }
 
-        // 通常の Invoice Items テーブルを試みる
-        const stdRows = extractItemRows(content.items);
-        if (stdRows.length > 0) {
-            itemRows = itemRows.concat(stdRows);
-        } else {
-            // 作業報告書の詳細行（2ページ目）があれば優先して使う
-            // （No./Task/Project/Delivery/Qty/Unit Price/Subtotal 形式）
-            const workRows = extractWorkReportRows(content.items);
-            if (workRows.length > 0) {
-                itemRows = itemRows.concat(workRows);
-            } else {
-                // 作業報告書付きの Invoice Summary テーブル（1ページ目サマリー）を使う
-                const summaryRows = extractSummaryRows(content.items);
-                itemRows = itemRows.concat(summaryRows);
-            }
-        }
+        // 各ページの行を種別ごとに蓄積（優先順位の適用は全ページ処理後）
+        const stdRows     = extractItemRows(content.items);
+        const workRows    = extractWorkReportRows(content.items);
+        const summaryRows = extractSummaryRows(content.items);
+
+        if (stdRows.length > 0)     stdRowsAll     = stdRowsAll.concat(stdRows);
+        if (workRows.length > 0)    workRowsAll    = workRowsAll.concat(workRows);
+        if (summaryRows.length > 0) summaryRowsAll = summaryRowsAll.concat(summaryRows);
     }
+
+    // 全ページ横断で優先順位を適用:
+    //   stdRows が1行でもあれば通常テーブルとして確定
+    //   workRows が1行でもあれば作業報告書詳細行を使用（summaryRowsを無視）
+    //   どちらもなければ summaryRows を使用
+    let itemRows = [];
+    if (stdRowsAll.length > 0) {
+        itemRows = stdRowsAll;
+    } else if (workRowsAll.length > 0) {
+        itemRows = workRowsAll;
+    } else {
+        itemRows = summaryRowsAll;
+    }
+
     return { text: fullText, itemRows: itemRows };
 }
 
