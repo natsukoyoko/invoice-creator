@@ -279,6 +279,163 @@ function extractItemRows(items) {
     });
 }
 
+// 作業報告書（2ページ目以降）の詳細行を抽出する。
+// 列構成: No. / Task / Project / Delivery / Qty / Unit Price / Subtotal
+// 部署セクションの見出し（■ A-01 ソリューション | PM業務...）で分割されている場合でも、
+// 全セクションを走査して行番号1始まりの行データをまとめて返す。
+// 戻り値: { department, jobCategory, taskDetails, projectName, qty, unitPrice }[] の配列
+function extractWorkReportRows(items) {
+    // ヘッダ行を特定（No. / Task / Project / Delivery / Qty / Unit Price / Subtotal）
+    const noHeader       = items.find(function(it) { return it.str.trim() === 'No.'; });
+    const taskHeader     = items.find(function(it) { return it.str.indexOf('Task /') === 0; });
+    const projectHeader  = items.find(function(it) { return it.str.indexOf('Project /') === 0; });
+    const deliveryHeader = items.find(function(it) { return it.str.indexOf('Delivery /') === 0; });
+    const qtyHeader      = items.find(function(it) { return it.str.indexOf('Qty /') === 0; });
+    const unitPriceHeader= items.find(function(it) { return it.str.indexOf('Unit Price /') === 0; });
+    const subtotalHeader = items.find(function(it) { return it.str.indexOf('Subtotal /') === 0; });
+
+    if (!noHeader || !taskHeader || !unitPriceHeader) return [];
+
+    const headerY    = noHeader.transform[5];
+    const noX        = noHeader.transform[4];       // ≈74
+    const taskX      = taskHeader.transform[4];     // ≈87
+    const projectX   = projectHeader ? projectHeader.transform[4] : taskX + 86;   // ≈173
+    const deliveryX  = deliveryHeader ? deliveryHeader.transform[4] : projectX + 102; // ≈275
+    const qtyX       = qtyHeader ? qtyHeader.transform[4] : deliveryX + 103;      // ≈378
+    const unitPriceX = unitPriceHeader.transform[4]; // ≈420
+    const subtotalX  = subtotalHeader ? subtotalHeader.transform[4] : unitPriceX + 60; // ≈480
+
+    // 列境界（各列の右端＝次の列の左端付近）を定義
+    // noX → taskX境界, taskX → projectX境界, projectX → deliveryX境界, ...
+    function colForX(x) {
+        if (x < taskX - 2)        return 'no';
+        if (x < projectX - 2)     return 'task';
+        if (x < deliveryX - 2)    return 'project';
+        if (x < qtyX - 2)         return 'delivery';
+        if (x < unitPriceX - 2)   return 'qty';
+        if (x < subtotalX - 2)    return 'unitPrice';
+        return 'subtotal';
+    }
+
+    // ■セクション見出しはヘッダ行より上にあることが多い（headerY + 60 程度の範囲）
+    // → 全アイテムから先に■行を抽出してセクション情報を保持しておく
+    const sectionHeaderItems = items.filter(function(it) {
+        return it.str.indexOf('■') === 0 || it.str === '■ A-01' ||
+               (it.str.indexOf('■') !== -1 && /[A-Z]-\d{2}/.test(it.str));
+    }).sort(function(a, b) { return b.transform[5] - a.transform[5]; });
+
+    // セクション見出し行のY座標と情報を配列に保持
+    const sectionYMap = [];
+    sectionHeaderItems.forEach(function(secItem) {
+        const secY = secItem.transform[5];
+        // 同じY座標のアイテムを全部結合してセクション文字列を作る
+        const sameYItems = items.filter(function(it) {
+            return Math.abs(it.transform[5] - secY) < 3;
+        }).sort(function(a, b) { return a.transform[4] - b.transform[4]; });
+        const secText = sameYItems.map(function(it) { return it.str; }).join('');
+        
+        const secMatch = secText.match(/■\s*([A-Z]-\d{2})\s+([^\|]+)\|\s*(.+)/);
+        let dept = '', jobCat = '';
+        if (secMatch) {
+            dept = secMatch[1].trim() + ' ' + secMatch[2].trim();
+            jobCat = secMatch[3].trim();
+        } else {
+            const deptMatch = secText.match(/■\s*([A-Z]-\d{2})\s*(.*)/);
+            if (deptMatch) dept = deptMatch[1].trim();
+        }
+        sectionYMap.push({ y: secY, dept: dept, jobCat: jobCat });
+    });
+
+    // ヘッダ行より下のアイテムだけ対象（ページフッタ・URLは除外）
+    const dataItems = items.filter(function(it) {
+        const y = it.transform[5];
+        if (y >= headerY - 2) return false;   // ヘッダ行以上は除外
+        if (it.str.trim() === '') return false;
+        // フッタ行（日付・URL・ページ番号）を除外
+        if (/^\d+\/\d+\/\d+,/.test(it.str)) return false;
+        if (it.str.indexOf('https://') === 0) return false;
+        if (/^\d+\/\d+$/.test(it.str.trim())) return false;
+        return true;
+    });
+
+    // Y座標でグループ化（同じ行 = Y差が2以内）
+    const sortedItems = dataItems.slice().sort(function(a, b) {
+        return b.transform[5] - a.transform[5];
+    });
+    const yGroups = [];
+    let lastY = null;
+    let curGroup = [];
+    sortedItems.forEach(function(it) {
+        const y = it.transform[5];
+        if (lastY !== null && Math.abs(y - lastY) > 3) {
+            if (curGroup.length) yGroups.push(curGroup);
+            curGroup = [];
+        }
+        curGroup.push(it);
+        lastY = y;
+    });
+    if (curGroup.length) yGroups.push(curGroup);
+
+    // 各行グループを列に振り分け
+    // "■ A-01 ..." のセクション見出し行を検出して部署・jobCategory情報を保持する
+    // データ行をY座標グループ単位で処理
+    // セクション情報は sectionYMap から「現在の行Yより上で最も近い■行」で決まる
+    const rows = [];
+
+    yGroups.forEach(function(group) {
+        const rowText = group.map(function(it) { return it.str; }).join('');
+        const rowY = group[0].transform[5];
+
+        // 先頭が数字（行番号）で始まるかチェック
+        const sortedGroup = group.slice().sort(function(a, b) { return a.transform[4] - b.transform[4]; });
+        const firstItem = sortedGroup[0];
+        if (!firstItem || !/^\d+$/.test(firstItem.str.trim())) return; // 行番号なし → skip
+
+        // この行より上で最も近いセクション見出しを探す
+        let currentDept = '';
+        let currentJobCategory = '';
+        let closestSecY = -Infinity;
+        sectionYMap.forEach(function(sec) {
+            if (sec.y > rowY && sec.y > closestSecY) {
+                closestSecY = sec.y;
+                currentDept = sec.dept;
+                currentJobCategory = sec.jobCat;
+            }
+        });
+
+        // 列に振り分け
+        const cols = { no: '', task: '', project: '', delivery: '', qty: '', unitPrice: '', subtotal: '' };
+        sortedGroup.forEach(function(it) {
+            cols[colForX(it.transform[4])] += it.str;
+        });
+
+        // ¥付き金額をパース（¥3,438 → 3438）
+        function parseAmount(str) {
+            return parseFloat(str.replace(/[¥$€£₩,\s]/g, '')) || 0;
+        }
+
+        const qtyVal       = parseFloat(cols.qty.replace(/[^\d.]/g, '')) || 1;
+        // unitPrice列に¥が含まれた形式（¥3,438）で入る
+        const unitPriceVal = parseAmount(cols.unitPrice);
+        // unitPrice が取れなかった場合は subtotal / qty から逆算
+        const resolvedUnitPrice = unitPriceVal > 0
+            ? unitPriceVal
+            : (qtyVal > 0 ? Math.round(parseAmount(cols.subtotal) / qtyVal) : 0);
+
+        rows.push({
+            department:   currentDept,
+            jobCategory:  currentJobCategory,
+            taskDetails:  cols.task.trim(),
+            projectName:  cols.project.trim(),
+            qty:          String(qtyVal),
+            unitPrice:    String(resolvedUnitPrice),
+            amount:       ''
+        });
+    });
+
+    return rows;
+}
+
 // PDFから全テキストと請求項目の行データを抽出する。
 // 通常の1カラム部分はY座標をもとに実際の行単位で改行を復元する。
 // TO / FROM はCSS Gridの2カラムレイアウトのため、PDF内では視覚的な行順
@@ -340,9 +497,16 @@ async function extractTextFromPdf(file) {
         if (stdRows.length > 0) {
             itemRows = itemRows.concat(stdRows);
         } else {
-            // 作業報告書付きの Invoice Summary テーブルを試みる
-            const summaryRows = extractSummaryRows(content.items);
-            itemRows = itemRows.concat(summaryRows);
+            // 作業報告書の詳細行（2ページ目）があれば優先して使う
+            // （No./Task/Project/Delivery/Qty/Unit Price/Subtotal 形式）
+            const workRows = extractWorkReportRows(content.items);
+            if (workRows.length > 0) {
+                itemRows = itemRows.concat(workRows);
+            } else {
+                // 作業報告書付きの Invoice Summary テーブル（1ページ目サマリー）を使う
+                const summaryRows = extractSummaryRows(content.items);
+                itemRows = itemRows.concat(summaryRows);
+            }
         }
     }
     return { text: fullText, itemRows: itemRows };
