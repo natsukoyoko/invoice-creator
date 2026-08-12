@@ -874,7 +874,8 @@ async function parsePdfAndRestore(file) {
 
         itemRows.forEach(function(data, rowIdx) {
             if (rowIdx > 0) {
-                const addBtn = document.getElementById('addItemBtn');
+                // ボタンIDは 'addItem'（index.tsx の id="addItem" に対応）
+                const addBtn = document.getElementById('addItem');
                 if (addBtn) addBtn.click();
             }
 
@@ -1100,7 +1101,10 @@ async function parsePdfAndRestore(file) {
     if (notesLineIdx !== -1) {
         const notesLines = [];
         for (let i = notesLineIdx + 1; i < allLines.length; i++) {
-            if (/^✓|^Declaration/.test(allLines[i])) break;
+            // 宣誓文・作業報告書テキスト・Attachments以降は備考に含めない
+            if (/^✓|^Declaration|^Attachments|^代表者名|^当月受託|^詳細につき|^https?:|^申請担当|^対象期間|^詳細明細|^◆/.test(allLines[i])) break;
+            // Payment / Invoice Summary / Work Report セクション開始も停止
+            if (/^Payment Information|^Invoice Summary|^Work Report|^Subtotal|^Total/.test(allLines[i])) break;
             notesLines.push(allLines[i]);
         }
         if (notesLines.length > 0) {
