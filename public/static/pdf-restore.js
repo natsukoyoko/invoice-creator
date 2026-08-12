@@ -12,11 +12,19 @@ if (typeof pdfjsLib !== 'undefined') {
 // 見た目は同じだが別のUnicode（康熙部首）に置き換わって出力されることがある
 // （例: 人→⼈、日→⽇、支→⽀、子→⼦、目→⽬）。自前のラベル文字列の照合が
 // 失敗しないよう、該当箇所は正規表現内で両方の文字を許容する。
-const RADICAL_VARIANTS = { '人': '⼈', '日': '⽇', '支': '⽀', '子': '⼦', '目': '⽬' };
+// 康熙部首 → 通常漢字 の対応表（PDFフォント変換で発生するすべての置換を網羅）
+const RADICAL_VARIANTS = {
+    '人': '⼈', '日': '⽇', '支': '⽀', '子': '⼦', '目': '⽬',
+    '行': '⾏', '八': '⼋', '金': '⾦', '比': '⽐', '口': '⼝',
+    '小': '⼩', '入': '⼊', '手': '⼿', '用': '⽤'
+};
+// 逆引きマップ（康熙部首 → 通常漢字）を事前生成して高速化
+const RADICAL_REVERSE = {};
+Object.keys(RADICAL_VARIANTS).forEach(function(k) { RADICAL_REVERSE[RADICAL_VARIANTS[k]] = k; });
 // 抽出したテキスト・値の中の康熙部首文字を標準の漢字に戻す（表示・照合の両方で使う）
 function normalizeRadicals(str) {
-    return str.replace(/[⼈⽇⽀⼦⽬]/g, function(ch) {
-        return Object.keys(RADICAL_VARIANTS).find(function(k) { return RADICAL_VARIANTS[k] === ch; });
+    return str.replace(/[⼈⽇⽀⼦⽬⾏⼋⾦⽐⼝⼩⼊⼿⽤]/g, function(ch) {
+        return RADICAL_REVERSE[ch] || ch;
     });
 }
 function tolerantPattern(label) {
@@ -325,6 +333,8 @@ function extractWorkReportRows(items) {
     }).sort(function(a, b) { return b.transform[5] - a.transform[5]; });
 
     // セクション見出し行のY座標と情報を配列に保持
+    // ※PDFの折り返しにより jobCategory の末尾が次のY行に分割される場合があるため、
+    //   ■行のY座標から最大30px下の行まで左端テキスト（x<200）を続きとして連結する
     const sectionYMap = [];
     sectionHeaderItems.forEach(function(secItem) {
         const secY = secItem.transform[5];
@@ -332,8 +342,26 @@ function extractWorkReportRows(items) {
         const sameYItems = items.filter(function(it) {
             return Math.abs(it.transform[5] - secY) < 3;
         }).sort(function(a, b) { return a.transform[4] - b.transform[4]; });
-        const secText = sameYItems.map(function(it) { return it.str; }).join('');
-        
+        let secText = sameYItems.map(function(it) { return it.str; }).join('');
+
+        // jobCatが途中で折り返している場合（末尾が閉じ括弧で終わっていない）、
+        // 直下の行（secY より 5〜30px 低い Y）の左端テキストを続きとして追加する
+        if (secText.indexOf('|') !== -1 && !/\)\s*$/.test(secText.replace(/\s/g, ''))) {
+            // secYより下で最も近いY行を探す
+            const allY = items.map(function(it) { return it.transform[5]; });
+            const lowerYs = allY.filter(function(y) { return secY - y > 4 && secY - y < 35; });
+            if (lowerYs.length > 0) {
+                const nextY = Math.max.apply(null, lowerYs); // secYの直下
+                // 次行の左端アイテム（x < 250、右端の小計等は除外）を連結
+                const nextItems = items.filter(function(it) {
+                    return Math.abs(it.transform[5] - nextY) < 3 && it.transform[4] < 250;
+                }).sort(function(a, b) { return a.transform[4] - b.transform[4]; });
+                if (nextItems.length > 0) {
+                    secText += nextItems.map(function(it) { return it.str; }).join('');
+                }
+            }
+        }
+
         const secMatch = secText.match(/■\s*([A-Z]-\d{2})\s+([^\|]+)\|\s*(.+)/);
         let dept = '', jobCat = '';
         if (secMatch) {
@@ -923,9 +951,12 @@ async function parsePdfAndRestore(file) {
                         // 列の折り返り復元時に空白が失われることがあるため、
                         // 空白を除いた文字列同士で前方一致を判定する
                         const lineClean = jobCategoryText.replace(/[★●\s]/g, '');
+                        console.log('[pdf-restore] jobCategory照合:', JSON.stringify(jobCategoryText), '→ lineClean:', JSON.stringify(lineClean));
+                        console.log('[pdf-restore] 選択肢:', Array.from(jobSel.options).map(function(o){ return JSON.stringify(o.value.replace(/\s/g,'').substring(0,8)); }).join(', '));
                         const matched = Array.from(jobSel.options).find(function(o) {
                             return o.value && lineClean.includes(o.value.replace(/\s/g, '').substring(0, 8));
                         });
+                        console.log('[pdf-restore] matched:', matched ? JSON.stringify(matched.value) : 'なし');
                         if (matched) {
                             jobSel.value = matched.value;
                             jobSel.dispatchEvent(new Event('change', { bubbles: true }));
