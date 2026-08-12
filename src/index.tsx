@@ -2297,8 +2297,10 @@ app.get('/', (c) => {
                                 <div>
                                     <h2 class="text-base font-bold mb-2 border-b-2 border-gray-800 pb-1">TO</h2>
                                     <div class="text-xs space-y-1">
-                                        <div class="font-bold text-base">\${formData.get('clientName') || ''}</div>
-                                        <div>\${(formData.get('clientAddress') || '').replace(/\\n/g, '<br>')}</div>
+                                        <div class="font-bold text-base">株式会社 LIFE PEPPER</div>
+                                        <div>〒104-0045 東京都中央区築地3–1–10<br>Shinto GINZA EAST 6F</div>
+                                        <div>Phone: +81 03-6869-7976</div>
+                                        <div class="mt-1"><strong>Attn:</strong> \${formData.get('clientContact')}</div>
                                     </div>
                                 </div>
                                 
