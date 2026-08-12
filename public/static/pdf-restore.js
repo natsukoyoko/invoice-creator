@@ -561,29 +561,44 @@ async function parsePdfAndRestore(file) {
     }
 
     // ---- 請求日 / 支払期限 ----
-    // ラベルと値は<br>で改行されているため別の行になる。タイトル部分と請求日欄は
-    // 横並びのため、PDF内では両者の行が前後することがあるので、ラベル行より後ろの
-    // 範囲（TO/BILL TOより手前）を順に探して最初に見つかった日付を値とする
-    // （ラベルの日本語部分は文字化けの影響を受けうるため英語部分のみで判定する）。
+    // 通常版: "Invoice Date / 請求日:" と値が別行（<br>区切り）
+    // 作業報告書版: "Invoice Date / 請求日: 2026-08-03 | Due Date / 支払期限: 2026-08-31"
+    //   が1行に結合されているため、同一行内のインライン値も抽出する必要がある。
+    //
+    // billToLineIdx の検出も注意:
+    //   通常版: "BILL TO:" or 単独 "TO" の行
+    //   作業報告書版: "TO FROM" という1行 → indexOf('TO') === 0 で検出
     const billToLineIdx = allLines.findIndex(function(l) {
-        return l.indexOf('BILL TO') === 0 || l === 'TO';
+        return l.indexOf('BILL TO') === 0 || l === 'TO' || l.indexOf('TO FROM') === 0 || l.indexOf('TO ') === 0;
     });
     const headerLines = billToLineIdx !== -1 ? allLines.slice(0, billToLineIdx) : allLines;
-    function dateAfterLabel(labelPrefix) {
-        const idx = headerLines.findIndex(function(l) { return l.indexOf(labelPrefix) === 0; });
-        if (idx === -1) return null;
-        for (let i = idx + 1; i < headerLines.length; i++) {
-            const m = headerLines[i].match(/([\d]{4})[-\/\.]([\d]{1,2})[-\/\.]([\d]{1,2})/);
-            if (m) return m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0');
+
+    // 日付抽出: ラベルを含む行そのもの（インライン値）と、その次の行の両方を探す
+    function extractDate(labelPrefix) {
+        // 全行を対象に「ラベルを含む行」を探す（headerLines 外でも可）
+        for (let i = 0; i < allLines.length; i++) {
+            const l = allLines[i];
+            if (l.indexOf(labelPrefix) === -1) continue;
+            // 同一行内に日付があればそれを返す（"Invoice Date / ...: 2026-08-03" 形式）
+            const after = l.slice(l.indexOf(labelPrefix) + labelPrefix.length);
+            const inline = after.match(/([\d]{4})[-\/\.]([\d]{1,2})[-\/\.]([\d]{1,2})/);
+            if (inline) return inline[1] + '-' + inline[2].padStart(2, '0') + '-' + inline[3].padStart(2, '0');
+            // 次の行以降に日付があれば返す（通常版の <br> 改行形式）
+            for (let j = i + 1; j < allLines.length; j++) {
+                const m = allLines[j].match(/([\d]{4})[-\/\.]([\d]{1,2})[-\/\.]([\d]{1,2})/);
+                if (m) return m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0');
+                // 別ラベルが来たら打ち切り
+                if (/^(Invoice|Due|BILL|TO |FROM|Sole|Freelan|Corporation)/.test(allLines[j])) break;
+            }
         }
         return null;
     }
-    const invoiceDateValue = dateAfterLabel('Invoice Date');
+    const invoiceDateValue = extractDate('Invoice Date');
     if (invoiceDateValue) {
         const el = document.querySelector('[name="invoiceDate"]');
         if (el) el.value = invoiceDateValue;
     }
-    const dueDateValue = dateAfterLabel('Due Date');
+    const dueDateValue = extractDate('Due Date');
     if (dueDateValue) {
         const el = document.querySelector('[name="dueDate"]');
         if (el) el.value = dueDateValue;
@@ -635,8 +650,9 @@ async function parsePdfAndRestore(file) {
 
     // issuerName・tradeName
     // ラベルを持たないため、「FROM」行（〜あれば発行者区分の行）の次の行を発行者名として扱う
+    // 作業報告書版では "TO FROM" という1行になっているため indexOf('FROM') !== -1 でも検出する
     const claimedIdx = {};
-    let fromLineIdx = fromLines.findIndex(function(l) { return l === 'FROM' || l.indexOf('FROM') === 0; });
+    let fromLineIdx = fromLines.findIndex(function(l) { return l === 'FROM' || l.indexOf('FROM') !== -1; });
     if (fromLineIdx !== -1) {
         claimedIdx[fromLineIdx] = true;
         fromLineIdx++;
