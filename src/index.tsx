@@ -1606,6 +1606,23 @@ app.get('/', (c) => {
                 document.getElementById('withholdingRow').style.display = hasWithholding ? 'flex' : 'none';
             }
             
+            // 個別行の required を type に合わせて設定
+            // NOTE: addItemRow() から呼ばれるため、DOMContentLoaded の外（トップレベル）に置く必要がある
+            function syncDeliveryRequired(row, isPeriod) {
+                const dateField  = row.querySelector('.item-delivery-date');
+                const startField = row.querySelector('.item-delivery-start');
+                const endField   = row.querySelector('.item-delivery-end');
+                if (isPeriod) {
+                    dateField.removeAttribute('required');
+                    startField.setAttribute('required', 'required');
+                    endField.setAttribute('required', 'required');
+                } else {
+                    dateField.setAttribute('required', 'required');
+                    startField.removeAttribute('required');
+                    endField.removeAttribute('required');
+                }
+            }
+
             // Add new item row
             function addItemRow() {
                 const container = document.getElementById('itemsContainer');
@@ -1644,8 +1661,15 @@ app.get('/', (c) => {
                 container.appendChild(newRow);
 
                 // Sync delivery mode for new row
-                const isIndividual = document.getElementById('useIndividualDelivery').checked;
+                // (select was reset to index 0 = "date" above, so the date/period
+                // sub-field visibility inherited from the cloned template row must
+                // also be reset to match — otherwise the visible fields and the
+                // required fields can point at different inputs)
                 const newDeliveryArea = newRow.querySelector('.item-delivery-area');
+                newRow.querySelector('.item-delivery-date-fields').style.display = 'flex';
+                newRow.querySelector('.item-delivery-period-fields').style.display = 'none';
+
+                const isIndividual = document.getElementById('useIndividualDelivery').checked;
                 newDeliveryArea.style.display = isIndividual ? 'block' : 'none';
                 if (isIndividual) {
                     syncDeliveryRequired(newRow, false); // default: date mode
@@ -2831,22 +2855,6 @@ app.get('/', (c) => {
                     const dateField  = document.getElementById('commonDeliveryDate');
                     const startField = document.getElementById('commonDeliveryStart');
                     const endField   = document.getElementById('commonDeliveryEnd');
-                    if (isPeriod) {
-                        dateField.removeAttribute('required');
-                        startField.setAttribute('required', 'required');
-                        endField.setAttribute('required', 'required');
-                    } else {
-                        dateField.setAttribute('required', 'required');
-                        startField.removeAttribute('required');
-                        endField.removeAttribute('required');
-                    }
-                }
-
-                // 個別行の required を type に合わせて設定
-                function syncDeliveryRequired(row, isPeriod) {
-                    const dateField  = row.querySelector('.item-delivery-date');
-                    const startField = row.querySelector('.item-delivery-start');
-                    const endField   = row.querySelector('.item-delivery-end');
                     if (isPeriod) {
                         dateField.removeAttribute('required');
                         startField.setAttribute('required', 'required');
