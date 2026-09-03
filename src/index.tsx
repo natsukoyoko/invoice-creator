@@ -1627,7 +1627,17 @@ app.get('/', (c) => {
                 
                 // Update job categories for new row
                 updateJobCategories();
-                
+
+                // Reset "Other Department" leftover state from the cloned template row
+                // (otherwise a stray required+empty field silently blocks form submission)
+                const otherDeptField = newRow.querySelector('.department-other');
+                otherDeptField.style.display = 'none';
+                otherDeptField.querySelector('input').removeAttribute('required');
+
+                // Reset "Other Job Category" leftover state from the cloned template row
+                const otherJobContainer = newRow.querySelector('.job-category-other-container');
+                otherJobContainer.style.display = 'none';
+
                 // Show remove button
                 newRow.querySelector('.remove-item').style.display = 'inline-block';
 
@@ -2259,7 +2269,7 @@ app.get('/', (c) => {
                 const issuerTypeMap = {
                     'corporation': 'Corporation / 法人',
                     'sole': 'Sole Proprietor / 個人事業主',
-                    'freelance': 'Freelance / フリーランス'
+                    'freelance': 'Freelancer / フリーランス'
                 };
                 const issuerType = issuerTypeMap[formData.get('issuerType')] || formData.get('issuerType');
                 

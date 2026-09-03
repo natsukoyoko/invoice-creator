@@ -679,7 +679,7 @@ async function parsePdfAndRestore(file) {
     const issuerTypeDefs = [
         { key: 'corporation', prefix: 'Corporation' },
         { key: 'sole',        prefix: 'Sole Proprietor' },
-        { key: 'freelance',   prefix: 'Freelancer' }
+        { key: 'freelance',   prefix: 'Freelance' } // 旧・作業報告書版PDFは"Freelancer"の"r"が欠落していたため短い方で一致させる
     ];
     const issuerTypeLineIdx = fromLines.findIndex(function(l) {
         return issuerTypeDefs.some(function(d) { return l.indexOf(d.prefix) === 0; });
