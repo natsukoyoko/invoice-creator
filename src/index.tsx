@@ -2799,6 +2799,8 @@ app.get('/', (c) => {
                     const isPeriod = this.value === 'period';
                     document.getElementById('commonDeliveryDateFields').style.display  = isPeriod ? 'none' : 'flex';
                     document.getElementById('commonDeliveryPeriodFields').style.display = isPeriod ? 'flex' : 'none';
+                    // 表示切り替えに合わせて required も更新（外さないと隠れた必須欄が残る）
+                    syncCommonDeliveryRequired();
                 });
 
                 // 個別：日付/期間 切り替え（委譲）
